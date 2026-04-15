@@ -2,7 +2,7 @@
 
 > 分析日期：2026-04-14 | 项目版本：基于当前代码库快照 | 代码行数：约 30 万行
 
----
+***
 
 ## 目录
 
@@ -16,7 +16,7 @@
 8. [扩展机制](#8-扩展机制)
 9. [架构决策与权衡](#9-架构决策与权衡)
 
----
+***
 
 ## 1. 系统架构总览
 
@@ -77,15 +77,15 @@ Hermes-Agent 采用**分层架构 + 插件化设计**，整体分为 5 个层次
 
 ### 1.2 架构特点
 
-| 特点 | 说明 | 优势 |
-|------|------|------|
-| **声明式工具注册** | 工具文件在 import 时自注册到 `registry` | 新增工具只需创建文件 + 添加到发现列表，无需修改中央配置 |
-| **编排层与接入层分离** | `AIAgent` 独立于 CLI/Gateway/ACP | 同一对话核心可服务多种接入方式 |
-| **工具与执行环境解耦** | `tools/environments/` 提供多种后端 | 本地/Docker/SSH/Modal/Daytona 可切换 |
-| **纵深防御安全** | 7 层独立安全检查（认证、审批、沙箱、脱敏等） | 某一层被绕过，下一层仍能提供保护 |
-| **插件化扩展** | Skills/Plugins/MCP 三种扩展机制 | 用户可自定义功能，无需修改核心代码 |
+| 特点            | 说明                            | 优势                              |
+| ------------- | ----------------------------- | ------------------------------- |
+| **声明式工具注册**   | 工具文件在 import 时自注册到 `registry` | 新增工具只需创建文件 + 添加到发现列表，无需修改中央配置   |
+| **编排层与接入层分离** | `AIAgent` 独立于 CLI/Gateway/ACP | 同一对话核心可服务多种接入方式                 |
+| **工具与执行环境解耦** | `tools/environments/` 提供多种后端  | 本地/Docker/SSH/Modal/Daytona 可切换 |
+| **纵深防御安全**    | 7 层独立安全检查（认证、审批、沙箱、脱敏等）       | 某一层被绕过，下一层仍能提供保护                |
+| **插件化扩展**     | Skills/Plugins/MCP 三种扩展机制     | 用户可自定义功能，无需修改核心代码               |
 
----
+***
 
 ## 2. 核心组件详解
 
@@ -93,9 +93,10 @@ Hermes-Agent 采用**分层架构 + 插件化设计**，整体分为 5 个层次
 
 #### 2.1.1 CLI（`cli.py` + `hermes_cli/main.py`）
 
-**职责**：交互式命令行界面，提供 Rich 终端 UI 和 prompt_toolkit 输入。
+**职责**：交互式命令行界面，提供 Rich 终端 UI 和 prompt\_toolkit 输入。
 
 **核心类**：
+
 ```python
 class HermesCLI:
     def __init__(self):
@@ -111,6 +112,7 @@ class HermesCLI:
 ```
 
 **关键流程**：
+
 ```
 用户输入 → process_command() → 
   ├─ 内置命令（/model, /tools, /memory...）→ 直接处理
@@ -122,6 +124,7 @@ class HermesCLI:
 **职责**：消息平台适配层，支持 Telegram、Discord、Slack、WhatsApp 等 15+ 平台。
 
 **核心架构**：
+
 ```python
 async def run_gateway():
     # 1. 加载平台配置
@@ -131,6 +134,7 @@ async def run_gateway():
 ```
 
 **平台适配器模式**：
+
 ```
 ┌────────────────────────────────────────────┐
 │          BaseMessagePlatform               │  ← 抽象基类
@@ -150,11 +154,12 @@ async def run_gateway():
 **职责**：Agent Communication Protocol，为 VS Code、Zed、JetBrains 等 IDE 提供集成。
 
 **核心机制**：
+
 - **stdio 传输**：通过标准输入输出与 IDE 通信
 - **权限桥接**：将 IDE 的权限请求映射到 Hermes 审批回调
 - **MCP 服务器注册**：IDE 提供的 MCP 服务器动态注册到工具系统
 
----
+***
 
 ### 2.2 编排层组件
 
@@ -163,6 +168,7 @@ async def run_gateway():
 **职责**：对话循环核心，管理 LLM 交互、工具调用、上下文压缩。
 
 **核心方法**：
+
 ```python
 class AIAgent:
     def chat(self, message: str) -> str:
@@ -174,6 +180,7 @@ class AIAgent:
 ```
 
 **对话循环伪代码**：
+
 ```python
 def run_conversation(self, user_message, ...):
     messages = build_initial_messages(user_message, system_message)
@@ -204,11 +211,12 @@ def run_conversation(self, user_message, ...):
     raise MaxIterationsReached()
 ```
 
-#### 2.2.2 model_tools.py（工具编排层）
+#### 2.2.2 model\_tools.py（工具编排层）
 
 **职责**：工具发现、Schema 生成、参数类型转换、调用分发。
 
 **核心函数**：
+
 ```python
 def _discover_tools():
     """导入所有工具模块，触发 registry.register()"""
@@ -233,7 +241,7 @@ def handle_function_call(function_name, function_args, task_id, user_task):
     return registry.dispatch(function_name, function_args, task_id=task_id)
 ```
 
----
+***
 
 ### 2.3 工具层组件
 
@@ -242,6 +250,7 @@ def handle_function_call(function_name, function_args, task_id, user_task):
 **职责**：集中管理所有工具的 Schema、Handler、可用性检查。
 
 **核心数据结构**：
+
 ```python
 class ToolEntry:
     __slots__ = (
@@ -257,41 +266,43 @@ class ToolRegistry:
 ```
 
 **关键方法**：
-| 方法 | 职责 | 调用者 |
-|------|------|--------|
-| `register()` | 注册工具（import 时调用） | tools/*.py |
-| `get_definitions()` | 获取通过 check_fn 过滤的 schema | model_tools.py |
-| `dispatch()` | 调用 handler 并处理异常 | model_tools.py |
-| `deregister()` | 注销工具（MCP 热更新） | tools/mcp_tool.py |
+
+| 方法                  | 职责                        | 调用者                |
+| ------------------- | ------------------------- | ------------------ |
+| `register()`        | 注册工具（import 时调用）          | tools/\*.py        |
+| `get_definitions()` | 获取通过 check\_fn 过滤的 schema | model\_tools.py    |
+| `dispatch()`        | 调用 handler 并处理异常          | model\_tools.py    |
+| `deregister()`      | 注销工具（MCP 热更新）             | tools/mcp\_tool.py |
 
 #### 2.3.2 工具分类
 
-| 类别 | 工具示例 | 数量 |
-|------|----------|------|
-| **核心工具** | terminal, read_file, write_file, search_files, patch | 5 |
-| **Web 工具** | web_search, web_extract | 2 |
-| **浏览器工具** | browser_navigate, browser_snapshot, browser_click... | 10 |
-| **视觉工具** | vision_analyze, text_to_speech, image_generate | 3 |
-| **代码工具** | execute_code（沙箱执行） | 1 |
-| **委托工具** | delegate_task（子代理） | 1 |
-| **记忆工具** | memory（读写 MEMORY.md） | 1 |
-| **待办工具** | todo（任务管理） | 1 |
-| **消息工具** | send_message（多平台发送） | 1 |
-| **流程工具** | cronjob, process（后台进程管理） | 2 |
-| **MCP 工具** | mcp_call, mcp_list_servers... | 4 |
-| **技能工具** | skills_list, skill_view, skill_manage | 3 |
-| **RL 工具** | rl_list_environments, rl_start_training... | 10 |
-| **动态工具** | MCP 服务器提供的工具（运行时注册） | 动态 |
+| 类别         | 工具示例                                                    | 数量 |
+| ---------- | ------------------------------------------------------- | -- |
+| **核心工具**   | terminal, read\_file, write\_file, search\_files, patch | 5  |
+| **Web 工具** | web\_search, web\_extract                               | 2  |
+| **浏览器工具**  | browser\_navigate, browser\_snapshot, browser\_click... | 10 |
+| **视觉工具**   | vision\_analyze, text\_to\_speech, image\_generate      | 3  |
+| **代码工具**   | execute\_code（沙箱执行）                                     | 1  |
+| **委托工具**   | delegate\_task（子代理）                                     | 1  |
+| **记忆工具**   | memory（读写 MEMORY.md）                                    | 1  |
+| **待办工具**   | todo（任务管理）                                              | 1  |
+| **消息工具**   | send\_message（多平台发送）                                    | 1  |
+| **流程工具**   | cronjob, process（后台进程管理）                                | 2  |
+| **MCP 工具** | mcp\_call, mcp\_list\_servers...                        | 4  |
+| **技能工具**   | skills\_list, skill\_view, skill\_manage                | 3  |
+| **RL 工具**  | rl\_list\_environments, rl\_start\_training...          | 10 |
+| **动态工具**   | MCP 服务器提供的工具（运行时注册）                                     | 动态 |
 
----
+***
 
 ### 2.4 支撑层组件
 
-#### 2.4.1 hermes_state.py（SQLite 会话存储）
+#### 2.4.1 hermes\_state.py（SQLite 会话存储）
 
 **职责**：持久化会话数据，支持 FTS5 全文搜索。
 
 **核心表结构**：
+
 ```sql
 CREATE TABLE sessions (
     id TEXT PRIMARY KEY,
@@ -322,6 +333,7 @@ CREATE VIRTUAL TABLE messages_fts USING fts5(
 ```
 
 **关键方法**：
+
 ```python
 class SessionDB:
     def create_session(self, session_id, source, user_id, model, ...)
@@ -331,11 +343,12 @@ class SessionDB:
     def prune_sessions(self, older_than_days=90)
 ```
 
-#### 2.4.2 hermes_cli/config.py（配置管理）
+#### 2.4.2 hermes\_cli/config.py（配置管理）
 
 **职责**：加载 config.yaml、管理.env 文件、环境变量验证。
 
 **配置加载流程**：
+
 ```
 1. 读取 ~/.hermes/config.yaml
    ↓
@@ -349,6 +362,7 @@ class SessionDB:
 ```
 
 **配置版本迁移**：
+
 ```python
 _config_version = 5  # 当前版本
 
@@ -363,19 +377,21 @@ def migrate_config(config):
         config["_config_version"] = _config_version
 ```
 
-#### 2.4.3 hermes_cli/auth.py（多提供者认证）
+#### 2.4.3 hermes\_cli/auth.py（多提供者认证）
 
 **职责**：管理 OAuth 流程、API Key 解析、Token 刷新。
 
 **支持的认证类型**：
-| 类型 | 提供者 | 流程 |
-|------|--------|------|
-| `oauth_device_code` | Nous Portal | 设备码流 → 用户授权 → Access Token → Agent Key |
-| `oauth_external` | OpenAI Codex, Qwen | 读取外部 OAuth 凭据 → 自动刷新 |
-| `api_key` | Anthropic, Gemini, GitHub | 环境变量优先级链查找 |
-| `external_process` | Copilot ACP | 子进程认证 |
+
+| 类型                  | 提供者                       | 流程                                     |
+| ------------------- | ------------------------- | -------------------------------------- |
+| `oauth_device_code` | Nous Portal               | 设备码流 → 用户授权 → Access Token → Agent Key |
+| `oauth_external`    | OpenAI Codex, Qwen        | 读取外部 OAuth 凭据 → 自动刷新                   |
+| `api_key`           | Anthropic, Gemini, GitHub | 环境变量优先级链查找                             |
+| `external_process`  | Copilot ACP               | 子进程认证                                  |
 
 **Token 刷新状态机**：
+
 ```
 ┌─────────────┐     即将过期      ┌─────────────┐
 │   Valid     │ ────────────────> │  Refreshing │
@@ -398,6 +414,7 @@ def migrate_config(config):
 **职责**：检测危险命令、执行审批流程、管理白名单。
 
 **三层检测机制**：
+
 ```
 1. Tirith 安全扫描（外部二进制）
    └─ 检测同形字 URL、管道到解释器、终端注入等
@@ -410,6 +427,7 @@ def migrate_config(config):
 ```
 
 **审批模式**：
+
 ```python
 APPROVAL_MODES = {
     "manual": "每次匹配都弹出交互式审批",
@@ -419,6 +437,7 @@ APPROVAL_MODES = {
 ```
 
 **审批状态持久化**：
+
 ```
 once（仅本次） → 无存储
 session（会话级） → _session_approved 字典
@@ -430,6 +449,7 @@ always（永久） → config.yaml 的 command_allowlist
 **职责**：日志和工具输出的敏感信息自动脱敏。
 
 **8 层脱敏规则**：
+
 ```python
 def redact_sensitive_text(text):
     # 1. 已知 API Key 前缀（30+ 种模式）
@@ -443,6 +463,7 @@ def redact_sensitive_text(text):
 ```
 
 **RedactingFormatter**：
+
 ```python
 class RedactingFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -452,7 +473,7 @@ class RedactingFormatter(logging.Formatter):
 
 所有日志 Handler 都使用 `RedactingFormatter`，确保日志自动脱敏。
 
----
+***
 
 ### 2.5 扩展层组件
 
@@ -463,13 +484,15 @@ class RedactingFormatter(logging.Formatter):
 **技能目录**：`~/.hermes/skills/`
 
 **技能类型**：
-| 类型 | 文件格式 | 用途 |
-|------|----------|------|
-| **Python 技能** | `.py` | 自定义工具函数 |
-| **文档技能** | `.md` | RAG 知识库 |
-| **MCP 技能** | `.yaml` | MCP 服务器配置 |
+
+| 类型            | 文件格式    | 用途        |
+| ------------- | ------- | --------- |
+| **Python 技能** | `.py`   | 自定义工具函数   |
+| **文档技能**      | `.md`   | RAG 知识库   |
+| **MCP 技能**    | `.yaml` | MCP 服务器配置 |
 
 **技能注册流程**：
+
 ```
 1. 扫描 ~/.hermes/skills/ 目录
    ↓
@@ -487,6 +510,7 @@ class RedactingFormatter(logging.Formatter):
 **职责**：动态扩展工具集（类似 Python 插件架构）。
 
 **插件发现机制**：
+
 ```python
 # hermes_cli/plugins.py
 def discover_plugins():
@@ -501,6 +525,7 @@ def discover_plugins():
 ```
 
 **插件结构**：
+
 ```
 my_plugin/
 ├── plugin.json      # 元数据（name, version, description）
@@ -516,6 +541,7 @@ my_plugin/
 **职责**：动态发现外部 MCP 服务器提供的工具。
 
 **MCP 工具注册流程**：
+
 ```
 1. 连接 MCP 服务器（stdio 或 HTTP）
    ↓
@@ -535,7 +561,7 @@ my_plugin/
    └─ 收到通知 → deregister 旧工具 → 重新 register
 ```
 
----
+***
 
 ## 3. 模块依赖关系
 
@@ -636,7 +662,7 @@ tools/terminal_tool.py (terminal_tool 函数)
    ```
 3. **单向依赖链**：严格遵循 0→1→2→3→4 层依赖方向，禁止反向依赖
 
----
+***
 
 ## 4. 设计模式应用
 
@@ -645,6 +671,7 @@ tools/terminal_tool.py (terminal_tool 函数)
 **应用场景**：`ToolRegistry`、`SessionDB`
 
 **实现方式**：
+
 ```python
 # tools/registry.py
 class ToolRegistry:
@@ -657,6 +684,7 @@ registry = ToolRegistry()
 ```
 
 **优势**：
+
 - 全局唯一工具注册表，避免多个实例导致注册信息分散
 - 模块级实例在 Python 中天然线程安全（GIL 保护模块加载）
 
@@ -665,6 +693,7 @@ registry = ToolRegistry()
 **应用场景**：`check_fn` 可用性检查、审批模式、环境后端选择
 
 **实现方式**：
+
 ```python
 # 不同工具的 check_fn 策略
 check_fn=lambda: bool(os.getenv("PARALLEL_API_KEY"))  # Web 工具
@@ -680,6 +709,7 @@ APPROVAL_STRATEGIES = {
 ```
 
 **优势**：
+
 - 统一接口（`check_fn()` 返回 bool），上层无需关心具体检查逻辑
 - 新增策略无需修改调用方代码
 
@@ -688,6 +718,7 @@ APPROVAL_STRATEGIES = {
 **应用场景**：环境后端创建、MCP 传输创建
 
 **实现方式**：
+
 ```python
 # tools/environments/__init__.py
 def create_environment(env_type: str, config: dict) -> Environment:
@@ -703,6 +734,7 @@ def create_environment(env_type: str, config: dict) -> Environment:
 ```
 
 **优势**：
+
 - 集中创建逻辑，调用方无需关心具体类
 - 易于扩展新环境类型
 
@@ -711,6 +743,7 @@ def create_environment(env_type: str, config: dict) -> Environment:
 **应用场景**：MCP `notifications/tools/list_changed`、Gateway 后台进程完成通知
 
 **实现方式**：
+
 ```python
 # MCP 服务器发送通知
 await session.send_notification(
@@ -731,6 +764,7 @@ def handle_tools_list_changed(params):
 ```
 
 **优势**：
+
 - 解耦通知发送方和接收方
 - 支持动态订阅/取消订阅
 
@@ -739,6 +773,7 @@ def handle_tools_list_changed(params):
 **应用场景**：`RedactingFormatter`、技能装饰器、日志增强
 
 **实现方式**：
+
 ```python
 # 日志脱敏装饰器
 class RedactingFormatter(logging.Formatter):
@@ -751,6 +786,7 @@ handler.setFormatter(RedactingFormatter())
 ```
 
 **优势**：
+
 - 动态增强对象功能，无需修改原始类
 - 可组合多个装饰器
 
@@ -759,6 +795,7 @@ handler.setFormatter(RedactingFormatter())
 **应用场景**：Gateway 平台适配器、ACP 协议适配
 
 **实现方式**：
+
 ```python
 # 抽象基类
 class BaseMessagePlatform(ABC):
@@ -784,6 +821,7 @@ class DiscordClient(BaseMessagePlatform):
 ```
 
 **优势**：
+
 - 统一接口，上层代码无需关心具体平台
 - 易于扩展新平台
 
@@ -792,6 +830,7 @@ class DiscordClient(BaseMessagePlatform):
 **应用场景**：命令审批流程、安全检查链
 
 **实现方式**：
+
 ```python
 def check_all_command_guards(command):
     # 责任链 1: Tirith 安全扫描
@@ -813,6 +852,7 @@ def check_all_command_guards(command):
 ```
 
 **优势**：
+
 - 每层独立检测，可单独启用/禁用
 - 易于新增检测层
 
@@ -821,6 +861,7 @@ def check_all_command_guards(command):
 **应用场景**：OAuth Token 刷新状态机、会话状态管理
 
 **实现方式**：
+
 ```python
 # OAuth 状态机
 class OAuthState:
@@ -845,6 +886,7 @@ class ReauthState(OAuthState):
 ```
 
 **优势**：
+
 - 状态转换逻辑清晰，避免大量 if-else
 - 每个状态独立封装
 
@@ -853,6 +895,7 @@ class ReauthState(OAuthState):
 **应用场景**：Callbacks 注入、环境配置注入
 
 **实现方式**：
+
 ```python
 # AIAgent 构造函数注入
 class AIAgent:
@@ -875,10 +918,11 @@ agent = AIAgent(
 ```
 
 **优势**：
+
 - 解耦依赖创建和使用
 - 易于测试（可注入 mock 对象）
 
----
+***
 
 ## 5. 核心业务流程
 
@@ -1424,7 +1468,7 @@ agent = AIAgent(
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 6. 数据流分析
 
@@ -1571,7 +1615,7 @@ agent = AIAgent(
 └──────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 7. 配置与状态管理
 
@@ -1658,20 +1702,20 @@ agent = AIAgent(
 └──────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 8. 扩展机制
 
 ### 8.1 Skills vs Plugins vs MCP 对比
 
-| 特性 | Skills | Plugins | MCP |
-|------|--------|---------|-----|
-| **文件格式** | `.py` / `.md` / `.yaml` | Python 包（`plugin.json` + 工具模块） | 外部服务器（stdio/HTTP） |
-| **注册方式** | 系统提示注入（保持 prompt caching） | `registry.register()` 工具注册 | `registry.register()` 动态注册 |
-| **安全性** | `skills_guard.py` 安装前扫描 | Python 代码完全访问权限 | MCP 服务器沙箱隔离 |
-| **热更新** | 否（需重启） | 否（需重启） | 是（`notifications/tools/list_changed`） |
-| **工具集归属** | `skills` | 自定义 toolset | `mcp_<server>` |
-| **适用场景** | 知识库、简单脚本、MCP 配置 | 复杂工具、需要 Python 依赖 | 外部服务集成 |
+| 特性        | Skills                    | Plugins                        | MCP                                   |
+| --------- | ------------------------- | ------------------------------ | ------------------------------------- |
+| **文件格式**  | `.py` / `.md` / `.yaml`   | Python 包（`plugin.json` + 工具模块） | 外部服务器（stdio/HTTP）                     |
+| **注册方式**  | 系统提示注入（保持 prompt caching） | `registry.register()` 工具注册     | `registry.register()` 动态注册            |
+| **安全性**   | `skills_guard.py` 安装前扫描   | Python 代码完全访问权限                | MCP 服务器沙箱隔离                           |
+| **热更新**   | 否（需重启）                    | 否（需重启）                         | 是（`notifications/tools/list_changed`） |
+| **工具集归属** | `skills`                  | 自定义 toolset                    | `mcp_<server>`                        |
+| **适用场景**  | 知识库、简单脚本、MCP 配置           | 复杂工具、需要 Python 依赖              | 外部服务集成                                |
 
 ### 8.2 扩展点总览
 
@@ -1715,45 +1759,45 @@ agent = AIAgent(
 └──────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 9. 架构决策与权衡
 
 ### 9.1 关键架构决策
 
-| 决策 | 选择 | 替代方案 | 理由 |
-|------|------|----------|------|
-| **工具注册方式** | 声明式自注册（import 时） | 中央配置文件 | 减少配置膨胀，新增工具只需创建文件 |
-| **对话核心** | 同步主循环 + 异步桥接 | 纯异步架构 | 简化 CLI 实现，异步桥接透明化 |
-| **工具调用分发** | 集中式 registry.dispatch() | 分散式 handler 查找 | 统一错误处理、日志、审计 |
-| **配置存储** | YAML + .env | JSON / TOML / 纯环境变量 | YAML 可读性好，.env 符合 Python 生态 |
-| **会话存储** | SQLite + FTS5 | PostgreSQL / MongoDB | 零依赖、嵌入式、FTS5 足够用 |
-| **安全模型** | 纵深防御（7 层） | 单一边界防护 | 某层被绕过，下层仍提供保护 |
-| **扩展机制** | Skills + Plugins + MCP 三轨 | 单一插件系统 | 满足不同复杂度需求 |
+| 决策         | 选择                        | 替代方案                 | 理由                          |
+| ---------- | ------------------------- | -------------------- | --------------------------- |
+| **工具注册方式** | 声明式自注册（import 时）          | 中央配置文件               | 减少配置膨胀，新增工具只需创建文件           |
+| **对话核心**   | 同步主循环 + 异步桥接              | 纯异步架构                | 简化 CLI 实现，异步桥接透明化           |
+| **工具调用分发** | 集中式 registry.dispatch()   | 分散式 handler 查找       | 统一错误处理、日志、审计                |
+| **配置存储**   | YAML + .env               | JSON / TOML / 纯环境变量  | YAML 可读性好，.env 符合 Python 生态 |
+| **会话存储**   | SQLite + FTS5             | PostgreSQL / MongoDB | 零依赖、嵌入式、FTS5 足够用            |
+| **安全模型**   | 纵深防御（7 层）                 | 单一边界防护               | 某层被绕过，下层仍提供保护               |
+| **扩展机制**   | Skills + Plugins + MCP 三轨 | 单一插件系统               | 满足不同复杂度需求                   |
 
 ### 9.2 技术债务与改进方向
 
-| 问题 | 影响 | 优先级 | 改进建议 |
-|------|------|--------|----------|
-| `tool_result()` 无人使用 | 代码冗余 | 低 | 推广使用或标记废弃 |
-| `_tools` 被外部直接访问 | 封装破坏 | 中 | 添加 `get_entries()` 公共方法 |
-| `redact_key()` 重复定义 | 维护成本 | 低 | 统一到 `redact.py` |
-| check_fn 缓存仅限单次调用 | 重复执行 | 中 | 实例级缓存 + TTL |
-| 无工具版本管理 | MCP 工具冲突 | 中 | 添加 version 字段 |
-| SQLite 文件权限未设置 | 安全风险 | 中 | 创建后 `chmod 0600` |
-| 轨迹保存无原子写入 | 文件损坏风险 | 低 | 使用 `tempfile + os.replace` |
+| 问题                   | 影响       | 优先级 | 改进建议                       |
+| -------------------- | -------- | --- | -------------------------- |
+| `tool_result()` 无人使用 | 代码冗余     | 低   | 推广使用或标记废弃                  |
+| `_tools` 被外部直接访问     | 封装破坏     | 中   | 添加 `get_entries()` 公共方法    |
+| `redact_key()` 重复定义  | 维护成本     | 低   | 统一到 `redact.py`            |
+| check\_fn 缓存仅限单次调用   | 重复执行     | 中   | 实例级缓存 + TTL                |
+| 无工具版本管理              | MCP 工具冲突 | 中   | 添加 version 字段              |
+| SQLite 文件权限未设置       | 安全风险     | 中   | 创建后 `chmod 0600`           |
+| 轨迹保存无原子写入            | 文件损坏风险   | 低   | 使用 `tempfile + os.replace` |
 
 ### 9.3 性能优化点
 
-| 优化点 | 当前状态 | 建议 |
-|--------|----------|------|
-| 工具 Schema 生成 | 每次 LLM 调用前重新过滤 | 缓存可用工具列表（TTL 5 分钟） |
-| FTS5 搜索 | 无查询缓存 | 热门查询结果缓存（LRU） |
-| OAuth Token 刷新 | 提前 2 分钟刷新 | 基于剩余有效期动态调整刷新时机 |
-| 日志写入 | 同步写入文件 | 异步队列批量写入（100ms 缓冲） |
-| Gateway 消息监听 | 每平台独立协程 | 使用 `asyncio.TaskGroup` 管理生命周期 |
+| 优化点            | 当前状态           | 建议                            |
+| -------------- | -------------- | ----------------------------- |
+| 工具 Schema 生成   | 每次 LLM 调用前重新过滤 | 缓存可用工具列表（TTL 5 分钟）            |
+| FTS5 搜索        | 无查询缓存          | 热门查询结果缓存（LRU）                 |
+| OAuth Token 刷新 | 提前 2 分钟刷新      | 基于剩余有效期动态调整刷新时机               |
+| 日志写入           | 同步写入文件         | 异步队列批量写入（100ms 缓冲）            |
+| Gateway 消息监听   | 每平台独立协程        | 使用 `asyncio.TaskGroup` 管理生命周期 |
 
----
+***
 
 ## 附录：架构图索引
 
@@ -1771,3 +1815,4 @@ agent = AIAgent(
 12. [工具调用数据流图](#64-工具调用数据流)
 13. [扩展机制对比表](#81-skills-vs-plugins-vs-mcp-对比)
 14. [扩展点总览图](#82-扩展点总览)
+
