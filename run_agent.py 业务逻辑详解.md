@@ -1,4 +1,4 @@
-# run_agent.py 业务逻辑详解
+# run\_agent.py 业务逻辑详解
 
 > 文件：`run_agent.py` | 整理日期：2026-04-23 | 版本：1.0
 
@@ -22,11 +22,11 @@
 
 ### 1.1 文件信息
 
-| 属性 | 值 |
-|------|------|
-| **文件路径** | `run_agent.py` |
-| **代码行数** | ~10,500 行 |
-| **核心类** | `AIAgent` |
+| 属性       | 值                       |
+| -------- | ----------------------- |
+| **文件路径** | `run_agent.py`          |
+| **代码行数** | \~10,500 行              |
+| **核心类**  | `AIAgent`               |
 | **主要职责** | AI Agent 对话循环、工具调用、会话管理 |
 
 ### 1.2 核心功能模块
@@ -59,17 +59,17 @@
 
 ### 1.3 关键方法索引
 
-| 方法 | 行数 | 职责 |
-|------|------|------|
-| `__init__` | L516-800 | 初始化 Agent 实例 |
-| `run_conversation` | L7544-8500 | 完整对话循环 |
-| `chat` | L10364-10500 | 简化对话接口 |
-| `_execute_tool_calls` | L6703-6800 | 工具调用调度 |
-| `_execute_tool_calls_sequential` | L7006-7100 | 顺序执行工具 |
-| `_execute_tool_calls_concurrent` | L6800-7000 | 并发执行工具 |
-| `_build_system_prompt` | L5500-5600 | 构建系统提示词 |
-| `_persist_session` | L5000-5100 | 持久化会话 |
-| `_compress_context` | L5200-5300 | 上下文压缩 |
+| 方法                               | 行数           | 职责           |
+| -------------------------------- | ------------ | ------------ |
+| `__init__`                       | L516-800     | 初始化 Agent 实例 |
+| `run_conversation`               | L7544-8500   | 完整对话循环       |
+| `chat`                           | L10364-10500 | 简化对话接口       |
+| `_execute_tool_calls`            | L6703-6800   | 工具调用调度       |
+| `_execute_tool_calls_sequential` | L7006-7100   | 顺序执行工具       |
+| `_execute_tool_calls_concurrent` | L6800-7000   | 并发执行工具       |
+| `_build_system_prompt`           | L5500-5600   | 构建系统提示词      |
+| `_persist_session`               | L5000-5100   | 持久化会话        |
+| `_compress_context`              | L5200-5300   | 上下文压缩        |
 
 ***
 
@@ -146,28 +146,28 @@ flowchart TD
 
 ### 2.3 核心属性详解
 
-| 属性分类 | 属性名 | 说明 | 默认值 |
-|----------|--------|------|--------|
-| **模型配置** | `model` | 模型名称 | `"anthropic/claude-opus-4.6"` |
-| | `max_iterations` | 最大工具调用迭代次数 | `90` |
-| | `iteration_budget` | 共享迭代预算 | `IterationBudget(90)` |
-| **API 配置** | `base_url` | API 基础 URL | `""` |
-| | `provider` | 提供商标识 | `""` |
-| | `api_mode` | API 模式 | `"chat_completions"` |
-| **工具配置** | `enabled_toolsets` | 启用的工具集 | `[]` |
-| | `disabled_toolsets` | 禁用的工具集 | `[]` |
-| **会话管理** | `session_id` | 会话 ID | `UUID` |
-| | `persist_session` | 持久化会话 | `True` |
-| | `_session_db` | SessionDB 实例 | `None` |
-| **回调函数** | `tool_progress_callback` | 工具进度回调 | `None` |
-| | `thinking_callback` | 思考回调 | `None` |
-| | `reasoning_callback` | 推理回调 | `None` |
+| 属性分类       | 属性名                      | 说明           | 默认值                           |
+| ---------- | ------------------------ | ------------ | ----------------------------- |
+| **模型配置**   | `model`                  | 模型名称         | `"anthropic/claude-opus-4.6"` |
+| <br />     | `max_iterations`         | 最大工具调用迭代次数   | `90`                          |
+| <br />     | `iteration_budget`       | 共享迭代预算       | `IterationBudget(90)`         |
+| **API 配置** | `base_url`               | API 基础 URL   | `""`                          |
+| <br />     | `provider`               | 提供商标识        | `""`                          |
+| <br />     | `api_mode`               | API 模式       | `"chat_completions"`          |
+| **工具配置**   | `enabled_toolsets`       | 启用的工具集       | `[]`                          |
+| <br />     | `disabled_toolsets`      | 禁用的工具集       | `[]`                          |
+| **会话管理**   | `session_id`             | 会话 ID        | `UUID`                        |
+| <br />     | `persist_session`        | 持久化会话        | `True`                        |
+| <br />     | `_session_db`            | SessionDB 实例 | `None`                        |
+| **回调函数**   | `tool_progress_callback` | 工具进度回调       | `None`                        |
+| <br />     | `thinking_callback`      | 思考回调         | `None`                        |
+| <br />     | `reasoning_callback`     | 推理回调         | `None`                        |
 
 ***
 
 ## 3. 核心业务流程
 
-### 3.1 run_conversation 完整流程
+### 3.1 run\_conversation 完整流程
 
 **代码位置：** L7544-8500
 
@@ -413,10 +413,10 @@ return {
 ```mermaid
 flowchart TD
     A[_interruptible_api_call] --> B[构建请求参数]
-    B --> C{stream_callback 存在？}
+    B --> C{stream_callback 存在?}
     
-    C -->|是 | D[流式调用 _stream_api_call]
-    C -->|否 | E[非流式调用 _non_stream_api_call]
+    C -->|是| D[流式调用 _stream_api_call]
+    C -->|否| E[非流式调用 _non_stream_api_call]
     
     D --> F[创建 HTTP 请求]
     E --> F
@@ -427,18 +427,18 @@ flowchart TD
     H -->|200| I[解析响应体]
     H -->|429| J[速率限制处理]
     H -->|5xx| K[服务器错误处理]
-    H -->|其他 | L[其他错误处理]
+    H -->|其他| L[其他错误处理]
     
     J --> M{重试次数 < 3?}
-    M -->|是 | N[指数退避]
+    M -->|是| N[指数退避]
     N --> G
-    M -->|否 | O[抛出异常]
+    M -->|否| O[抛出异常]
     
     K --> P{重试次数 < 5?}
-    P -->|是 | N
-    P -->|否 | O
+    P -->|是| N
+    P -->|否| O
     
-    I --> Q[提取 choices[0].message]
+    I --> Q[提取 choices_0.message]
     Q --> R[返回 assistant_message]
 ```
 
@@ -844,17 +844,17 @@ def _calculate_session_stats(self, messages: list) -> dict:
 
 ### 7.1 回调函数类型
 
-| 回调函数 | 触发时机 | 参数 | 用途 |
-|----------|----------|------|------|
+| 回调函数                     | 触发时机   | 参数                          | 用途       |
+| ------------------------ | ------ | --------------------------- | -------- |
 | `tool_progress_callback` | 工具开始执行 | `(tool_name, args_preview)` | 显示工具执行进度 |
-| `tool_start_callback` | 工具开始执行 | `(tool_name, args)` | 工具启动通知 |
-| `tool_complete_callback` | 工具完成执行 | `(tool_name, result)` | 工具完成通知 |
-| `thinking_callback` | 模型思考中 | `(content)` | 显示思考过程 |
-| `reasoning_callback` | 推理内容 | `(reasoning_text)` | 显示推理链 |
-| `clarify_callback` | 需要用户澄清 | `(question, choices)` | 交互式提问 |
-| `step_callback` | 步骤完成 | `(step_name, details)` | 步骤进度通知 |
-| `stream_delta_callback` | 流式输出增量 | `(delta_text)` | TTS 流式生成 |
-| `status_callback` | 状态变更 | `(status_message)` | 状态更新通知 |
+| `tool_start_callback`    | 工具开始执行 | `(tool_name, args)`         | 工具启动通知   |
+| `tool_complete_callback` | 工具完成执行 | `(tool_name, result)`       | 工具完成通知   |
+| `thinking_callback`      | 模型思考中  | `(content)`                 | 显示思考过程   |
+| `reasoning_callback`     | 推理内容   | `(reasoning_text)`          | 显示推理链    |
+| `clarify_callback`       | 需要用户澄清 | `(question, choices)`       | 交互式提问    |
+| `step_callback`          | 步骤完成   | `(step_name, details)`      | 步骤进度通知   |
+| `stream_delta_callback`  | 流式输出增量 | `(delta_text)`              | TTS 流式生成 |
+| `status_callback`        | 状态变更   | `(status_message)`          | 状态更新通知   |
 
 ### 7.2 回调调用示例
 
@@ -883,14 +883,14 @@ if self.status_callback:
 
 ### 8.1 错误类型和处理策略
 
-| 错误类型 | 重试次数 | 退避策略 | 处理逻辑 |
-|----------|----------|----------|----------|
-| **API 速率限制 (429)** | 3 | 指数退避 (1s, 2s, 4s) | 等待后重试 |
-| **服务器错误 (5xx)** | 5 | 指数退避 (1s, 2s, 4s, 8s, 16s) | 等待后重试 |
-| **网络超时** | 3 | 固定延迟 (2s) | 重建连接后重试 |
-| **无效工具调用** | 2 | 无延迟 | 通知 LLM 修正 |
-| **无效 JSON** | 2 | 无延迟 | 通知 LLM 修正 |
-| **空响应内容** | 2 | 无延迟 | 通知 LLM 重新生成 |
+| 错误类型               | 重试次数 | 退避策略                       | 处理逻辑        |
+| ------------------ | ---- | -------------------------- | ----------- |
+| **API 速率限制 (429)** | 3    | 指数退避 (1s, 2s, 4s)          | 等待后重试       |
+| **服务器错误 (5xx)**    | 5    | 指数退避 (1s, 2s, 4s, 8s, 16s) | 等待后重试       |
+| **网络超时**           | 3    | 固定延迟 (2s)                  | 重建连接后重试     |
+| **无效工具调用**         | 2    | 无延迟                        | 通知 LLM 修正   |
+| **无效 JSON**        | 2    | 无延迟                        | 通知 LLM 修正   |
+| **空响应内容**          | 2    | 无延迟                        | 通知 LLM 重新生成 |
 
 ### 8.2 重试机制实现
 
@@ -968,7 +968,7 @@ def _restore_primary_runtime(self):
 
 ## 9. 完整流程图
 
-### 9.1 run_conversation 完整时序图
+### 9.1 run\_conversation 完整时序图
 
 ```mermaid
 sequenceDiagram
@@ -1109,44 +1109,44 @@ flowchart TD
 
 ### 10.1 核心架构特性
 
-| 特性 | 说明 | 实现方式 |
-|------|------|----------|
-| **对话循环** | 多轮工具调用直到完成 | `while` 循环 + 迭代计数 |
-| **工具调度** | 顺序/并发自动切换 | 依赖检测 + 执行模式选择 |
-| **会话持久化** | SQLite 存储完整历史 | SessionDB + 事务处理 |
-| **错误处理** | 分层重试 + 降级策略 | 错误分类 + 指数退避 |
-| **回调系统** | 9 种回调函数 | 事件驱动通知 |
-| **流式输出** | 支持 TTS 实时生成 | `_stream_callback` |
-| **上下文管理** | 自动压缩 + 缓存优化 | 系统提示词缓存 |
+| 特性        | 说明            | 实现方式               |
+| --------- | ------------- | ------------------ |
+| **对话循环**  | 多轮工具调用直到完成    | `while` 循环 + 迭代计数  |
+| **工具调度**  | 顺序/并发自动切换     | 依赖检测 + 执行模式选择      |
+| **会话持久化** | SQLite 存储完整历史 | SessionDB + 事务处理   |
+| **错误处理**  | 分层重试 + 降级策略   | 错误分类 + 指数退避        |
+| **回调系统**  | 9 种回调函数       | 事件驱动通知             |
+| **流式输出**  | 支持 TTS 实时生成   | `_stream_callback` |
+| **上下文管理** | 自动压缩 + 缓存优化   | 系统提示词缓存            |
 
 ### 10.2 关键代码统计
 
-| 模块 | 代码行数 | 复杂度 |
-|------|----------|--------|
-| `__init__` | ~300 行 | 中 |
-| `run_conversation` | ~1000 行 | 高 |
-| `chat` | ~150 行 | 低 |
-| `_execute_tool_calls` | ~300 行 | 中 |
-| `_execute_tool_calls_sequential` | ~100 行 | 低 |
-| `_execute_tool_calls_concurrent` | ~200 行 | 中 |
-| 错误处理 | ~500 行 | 高 |
-| 会话持久化 | ~300 行 | 中 |
-| **总计** | **~10,500 行** | **高** |
+| 模块                               | 代码行数           | 复杂度   |
+| -------------------------------- | -------------- | ----- |
+| `__init__`                       | \~300 行        | 中     |
+| `run_conversation`               | \~1000 行       | 高     |
+| `chat`                           | \~150 行        | 低     |
+| `_execute_tool_calls`            | \~300 行        | 中     |
+| `_execute_tool_calls_sequential` | \~100 行        | 低     |
+| `_execute_tool_calls_concurrent` | \~200 行        | 中     |
+| 错误处理                             | \~500 行        | 高     |
+| 会话持久化                            | \~300 行        | 中     |
+| **总计**                           | **\~10,500 行** | **高** |
 
 ### 10.3 设计模式应用
 
-| 模式 | 应用场景 | 优势 |
-|------|----------|------|
-| **命令模式** | 工具调用封装 | 解耦调用者和接收者 |
-| **策略模式** | 顺序/并发执行选择 | 灵活切换执行策略 |
-| **观察者模式** | 回调函数系统 | 事件通知解耦 |
-| **单例模式** | SessionDB 实例 | 全局唯一数据库连接 |
-| **工厂模式** | API 客户端创建 | 统一客户端创建逻辑 |
-| **模板方法模式** | API 调用流程 | 固定调用步骤，可变实现细节 |
+| 模式         | 应用场景         | 优势            |
+| ---------- | ------------ | ------------- |
+| **命令模式**   | 工具调用封装       | 解耦调用者和接收者     |
+| **策略模式**   | 顺序/并发执行选择    | 灵活切换执行策略      |
+| **观察者模式**  | 回调函数系统       | 事件通知解耦        |
+| **单例模式**   | SessionDB 实例 | 全局唯一数据库连接     |
+| **工厂模式**   | API 客户端创建    | 统一客户端创建逻辑     |
+| **模板方法模式** | API 调用流程     | 固定调用步骤，可变实现细节 |
 
 ***
 
-**文档版本：** 1.0  
-**整理日期：** 2026-04-23  
-**适用版本：** Hermes-Agent v2.0+  
-**源文件：** `run_agent.py` (~10,500 行)
+**文档版本：** 1.0\
+**整理日期：** 2026-04-23\
+**适用版本：** Hermes-Agent v2.0+\
+**源文件：** `run_agent.py` (\~10,500 行)
