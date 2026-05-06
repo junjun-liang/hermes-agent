@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>倒数日</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0d1117;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .card {
+    background: linear-gradient(145deg, #1a1f2e, #111620);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 28px;
+    padding: 50px 60px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .label {
+    color: #8b949e;
+    font-size: 15px;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+  }
+  .days {
+    font-size: 120px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #58a6ff, #bc8cff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="label">距离星期五</div>
+  <div class="days" id="count"></div>
+</div>
+
+<script>
+const el = document.getElementById('count');
+
+function update() {
+  const now = new Date();
+  const day = now.getDay();          // 0=Sun, 5=Fri
+  const diff = day <= 5 ? 5 - day : 5 - day + 7;
+  el.textContent = diff === 0 ? '今天 🎉' : diff;
+}
+
+update();
+</script>
+</body>
+</html>

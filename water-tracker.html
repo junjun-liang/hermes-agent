@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💧 喝水打卡工具</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #f0f9ff;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .header .date {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-card {
+            text-align: center;
+        }
+
+        .progress-title {
+            font-size: 16px;
+            color: var(--text-light);
+            margin-bottom: 16px;
+        }
+
+        .progress-ring-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 12;
+        }
+
+        .progress-ring-fill {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-text .current {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .progress-text .target {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        .progress-percent {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--success);
+            margin-top: 8px;
+        }
+
+        .quick-add {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .quick-btn {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-btn:hover {
+            border-color: var(--primary);
+            background: #eff6ff;
+            transform: translateY(-2px);
+        }
+
+        .quick-btn:active {
+            transform: translateY(0);
+        }
+
+        .quick-btn .icon {
+            font-size: 24px;
+        }
+
+        .quick-btn .label {
+            font-size: 13px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .quick-btn .amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .custom-input-card {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .custom-input {
+            flex: 1;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .custom-input:focus {
+            border-color: var(--primary);
+        }
+
+        .add-custom-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .add-custom-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .settings-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .settings-input {
+            width: 100px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .settings-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .history-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .clear-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-time {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .history-amount {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 16px;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        .empty-history {
+            text-align: center;
+            color: var(--text-light);
+            padding: 40px 20px;
+        }
+
+        .empty-history .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .achievement-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+            z-index: 1000;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .achievement-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 400px) {
+            .quick-add {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .progress-ring-container {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .progress-text .current {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💧 喝水打卡</h1>
+            <div class="date" id="currentDate"></div>
+        </div>
+
+        <div class="card progress-card">
+            <div class="progress-title">今日饮水进度</div>
+            <div class="progress-ring-container">
+                <svg class="progress-ring" width="200" height="200">
+                    <circle class="progress-ring-bg" cx="100" cy="100" r="80"/>
+                    <circle class="progress-ring-fill" cx="100" cy="100" r="80" 
+                            stroke-dasharray="502.65" stroke-dashoffset="502.65"/>
+                </svg>
+                <div class="progress-text">
+                    <div class="current"><span id="currentAmount">0</span>ml</div>
+                    <div class="target">目标：<span id="targetAmount">2000</span>ml</div>
+                    <div class="progress-percent" id="progressPercent">0%</div>
+                </div>
+            </div>
+            
+            <div class="quick-add">
+                <button class="quick-btn" onclick="addWater(150)">
+                    <span class="icon">🥛</span>
+                    <span class="label">小杯</span>
+                    <span class="amount">150ml</span>
+                </button>
+                <button class="quick-btn" onclick="addWater(250)">
+                    <span class="icon">💧</span>
+                    <span class="label">中杯</span>
+                    <span class="amount">250ml</span>
+                </button>
+                <button class="quick-btn" onclick="addWater(500)">
+                    <span class="icon">🍶</span>
+                    <span class="label">大杯</span>
+                    <span class="amount">500ml</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="custom-input-card">
+                <input type="number" class="custom-input" id="customAmount" 
+                       placeholder="输入水量 (ml)" min="1" max="2000">
+                <button class="add-custom-btn" onclick="addCustomWater()">添加</button>
+            </div>
+        </div>
+
+        <div class="card settings-card">
+            <span class="settings-title">🎯 每日目标</span>
+            <input type="number" class="settings-input" id="targetInput" 
+                   value="2000" min="500" max="5000" step="100" onchange="updateTarget()">
+            <span style="color: var(--text-light); font-size: 14px;">ml</span>
+        </div>
+
+        <div class="card">
+            <div class="history-header">
+                <span class="history-title">📋 今日记录</span>
+                <button class="clear-btn" onclick="clearTodayHistory()">清空今日</button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+
+    <div class="achievement-toast" id="achievementToast">
+        🎉 恭喜！已达成今日目标！
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'waterTrackerData';
+        
+        function getData() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) return JSON.parse(data);
+            return { target: 2000, records: {} };
+        }
+
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function getTodayKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getTodayRecords() {
+            const data = getData();
+            return data.records[getTodayKey()] || [];
+        }
+
+        function getTodayTotal() {
+            return getTodayRecords().reduce((sum, r) => sum + r.amount, 0);
+        }
+
+        function addWater(amount) {
+            if (amount <= 0 || amount > 2000) {
+                alert('请输入有效的水量 (1-2000ml)');
+                return;
+            }
+            const data = getData();
+            const today = getTodayKey();
+            if (!data.records[today]) data.records[today] = [];
+            data.records[today].push({
+                amount: amount,
+                time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+            });
+            saveData(data);
+            updateUI();
+            checkAchievement();
+        }
+
+        function addCustomWater() {
+            const input = document.getElementById('customAmount');
+            const amount = parseInt(input.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('请输入有效的水量');
+                return;
+            }
+            addWater(amount);
+            input.value = '';
+            input.focus();
+        }
+
+        function deleteRecord(index) {
+            const data = getData();
+            const today = getTodayKey();
+            if (data.records[today]) {
+                data.records[today].splice(index, 1);
+                saveData(data);
+                updateUI();
+            }
+        }
+
+        function clearTodayHistory() {
+            if (confirm('确定要清空今日所有记录吗？')) {
+                const data = getData();
+                data.records[getTodayKey()] = [];
+                saveData(data);
+                updateUI();
+            }
+        }
+
+        function updateTarget() {
+            const input = document.getElementById('targetInput');
+            let target = parseInt(input.value);
+            if (isNaN(target) || target < 500) target = 500;
+            else if (target > 5000) target = 5000;
+            const data = getData();
+            data.target = target;
+            saveData(data);
+            updateUI();
+        }
+
+        function updateUI() {
+            const data = getData();
+            const records = getTodayRecords();
+            const total = records.reduce((sum, r) => sum + r.amount, 0);
+            const percent = Math.min(100, Math.round((total / data.target) * 100));
+
+            document.getElementById('currentDate').textContent = 
+                new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+            const circle = document.querySelector('.progress-ring-fill');
+            const circumference = 2 * Math.PI * 80;
+            const offset = circumference - (percent / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+
+            document.getElementById('currentAmount').textContent = total;
+            document.getElementById('targetAmount').textContent = data.target;
+            document.getElementById('progressPercent').textContent = percent + '%';
+            document.getElementById('targetInput').value = data.target;
+
+            updateHistoryList(records);
+
+            if (percent >= 100) {
+                circle.style.stroke = '#10b981';
+                document.getElementById('progressPercent').style.color = '#10b981';
+            } else if (percent >= 75) {
+                circle.style.stroke = '#3b82f6';
+                document.getElementById('progressPercent').style.color = '#3b82f6';
+            } else if (percent >= 50) {
+                circle.style.stroke = '#f59e0b';
+                document.getElementById('progressPercent').style.color = '#f59e0b';
+            } else {
+                circle.style.stroke = '#3b82f6';
+                document.getElementById('progressPercent').style.color = '#64748b';
+            }
+        }
+
+        function updateHistoryList(records) {
+            const list = document.getElementById('historyList');
+            if (records.length === 0) {
+                list.innerHTML = '<div class="empty-history"><div class="icon">💧</div><div>今天还没有喝水记录</div><div style="font-size:13px;margin-top:8px;">点击上方按钮开始打卡吧！</div></div>';
+                return;
+            }
+            const reversedRecords = [...records].reverse();
+            list.innerHTML = reversedRecords.map((record, index) => {
+                const originalIndex = records.length - 1 - index;
+                return '<div class="history-item"><div><div class="history-amount">+' + record.amount + 'ml</div><div class="history-time">' + record.time + '</div></div><button class="delete-btn" onclick="deleteRecord(' + originalIndex + ')" title="删除记录">🗑️</button></div>';
+            }).join('');
+        }
+
+        let achievementShown = false;
+
+        function checkAchievement() {
+            const data = getData();
+            const total = getTodayTotal();
+            if (total >= data.target && !achievementShown) {
+                achievementShown = true;
+                showAchievement();
+            }
+            const lastCheck = localStorage.getItem('waterTrackerLastCheck');
+            const today = getTodayKey();
+            if (lastCheck !== today) {
+                achievementShown = false;
+                localStorage.setItem('waterTrackerLastCheck', today);
+            }
+        }
+
+        function showAchievement() {
+            const toast = document.getElementById('achievementToast');
+            toast.classList.add('show');
+            playSuccessSound();
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function playSuccessSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = 523.25;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.3;
+                oscillator.start();
+                setTimeout(() => oscillator.frequency.value = 659.25, 100);
+                setTimeout(() => oscillator.frequency.value = 783.99, 200);
+                setTimeout(() => oscillator.stop(), 400);
+            } catch (e) {}
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            document.getElementById('customAmount').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addCustomWater();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') addWater(250);
+        });
+    </script>
+</body>
+</html>
