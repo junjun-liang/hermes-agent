@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     port: int = 8000
     
     # ========== Agent 核心配置 ==========
-    default_model: str = "anthropic/claude-opus-4.6"
+    default_model: str = "dashscope/deepseek-v4-flash"  # 阿里云百炼 DeepSeek V4 Flash
     max_iterations: int = 90
     tool_delay: float = 1.0
     save_trajectories: bool = False

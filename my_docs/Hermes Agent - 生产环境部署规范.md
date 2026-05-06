@@ -1,192 +1,196 @@
-# Hermes Agent - Production Deployment Specification
+# Hermes Agent - 生产环境部署规范
 
-## Executive Summary
+## 执行摘要
 
-This document provides a production-ready specification for deploying the Hermes AI Agent as a FastAPI service for Android app consumption. The deployment extracts the core agent functionality from the CLI/messaging platform architecture and exposes it via a secure, scalable REST API.
+本文档提供了生产级别的规范，用于将 Hermes AI Agent 部署为 FastAPI 服务，供 Android 应用使用。该部署方案从 CLI/消息平台架构中提取核心 Agent 功能，并通过安全、可扩展的 REST API 进行暴露。
 
----
+***
 
-## Table of Contents
+## 目录
 
-1. [Architecture Overview](#architecture-overview)
-2. [Component Extraction](#component-extraction)
-3. [FastAPI Service Design](#fastapi-service-design)
-4. [Authentication & Security](#authentication--security)
-5. [Deployment Architecture](#deployment-architecture)
-6. [Configuration Management](#configuration-management)
-7. [Database & State Management](#database--state-management)
-8. [Tool Configuration](#tool-configuration)
-9. [Monitoring & Observability](#monitoring--observability)
-10. [Scaling Strategy](#scaling-strategy)
-11. [Implementation Roadmap](#implementation-roadmap)
+1. [架构概览](#1-架构概览)
+2. [组件提取](#2-组件提取)
+3. [FastAPI 服务设计](#3-fastapi-服务设计)
+4. [认证与安全](#4-认证与安全)
+5. [部署架构](#5-部署架构)
+6. [配置管理](#6-配置管理)
+7. [数据库与状态管理](#7-数据库与状态管理)
+8. [工具配置](#8-工具配置)
+9. [监控与可观测性](#9-监控与可观测性)
+10. [扩展策略](#10-扩展策略)
+11. [实施路线图](#11-实施路线图)
 
----
+***
 
-## 1. Architecture Overview
+## 1. 架构概览
 
-### 1.1 Current Architecture
+### 1.1 当前架构
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  Hermes Agent (Current)                 │
+│                  Hermes Agent (当前)                     │
 ├─────────────────────────────────────────────────────────┤
-│  CLI / Gateway (Telegram, Discord, Slack, etc.)        │
-│  ├── cli.py (interactive terminal)                      │
-│  └── gateway/ (messaging platforms)                     │
+│  CLI / 网关 (Telegram, Discord, Slack 等)               │
+│  ├── cli.py (交互式终端)                                │
+│  └── gateway/ (消息平台)                                │
 │                        ↓                                │
-│  run_agent.py (AIAgent class - conversation loop)       │
-│  ├── model_tools.py (tool orchestration)               │
-│  ├── tools/registry.py (tool registration)             │
-│  ├── toolsets.py (toolset definitions)                 │
-│  └── hermes_state.py (SQLite session store)            │
+│  run_agent.py (AIAgent 类 - 对话循环)                   │
+│  ├── model_tools.py (工具编排)                          │
+│  ├── tools/registry.py (工具注册)                       │
+│  ├── toolsets.py (工具集定义)                           │
+│  └── hermes_state.py (SQLite 会话存储)                  │
 │                        ↓                                │
-│  External APIs (LLM providers, web, terminal, etc.)    │
+│  外部 API (LLM 提供商、web、终端等)                      │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Target Architecture
+### 1.2 目标架构
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  Android App                            │
+│                  Android 应用                            │
 └─────────────────────────────────────────────────────────┘
                         ↓ HTTPS
 ┌─────────────────────────────────────────────────────────┐
-│              Load Balancer (nginx/ALB)                  │
+│              负载均衡器 (nginx/ALB)                      │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
-│          FastAPI Service Cluster (Kubernetes)           │
+│          FastAPI 服务集群 (Kubernetes)                   │
 ├─────────────────────────────────────────────────────────┤
-│  /api/v1/chat/completions  (OpenAI-compatible API)     │
-│  /api/v1/chat/sessions     (Session management)         │
-│  /api/v1/chat/history      (Conversation history)       │
-│  /api/v1/tools/list        (Available tools)            │
-│  /health, /ready, /metrics (Observability)              │
+│  /api/v1/chat/completions  (OpenAI 兼容 API)            │
+│  /api/v1/chat/sessions     (会话管理)                   │
+│  /api/v1/chat/history      (对话历史)                   │
+│  /api/v1/tools/list        (可用工具)                   │
+│  /health, /ready, /metrics (可观测性)                   │
 │                                                         │
-│  Middleware Stack:                                      │
-│  ├── JWT Authentication                                 │
-│  ├── Rate Limiting (Redis)                              │
-│  ├── Request Validation                                 │
-│  ├── CORS Configuration                                 │
-│  └── Structured Logging                                 │
+│  中间件栈：                                              │
+│  ├── JWT 认证                                            │
+│  ├── 速率限制 (Redis)                                    │
+│  ├── 请求验证                                            │
+│  ├── CORS 配置                                           │
+│  └── 结构化日志                                          │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
-│               Supporting Services                       │
+│               支撑服务                                    │
 ├─────────────────────────────────────────────────────────┤
-│  PostgreSQL (sessions, users, audit logs)              │
-│  Redis (rate limiting, caching, pub/sub)               │
-│  S3/MinIO (file storage, trajectories)                 │
-│  Prometheus + Grafana (metrics)                        │
-│  ELK/Loki (logging)                                     │
+│  PostgreSQL (会话、用户、审计日志)                       │
+│  Redis (速率限制、缓存、发布/订阅)                       │
+│  S3/MinIO (文件存储、轨迹)                              │
+│  Prometheus + Grafana (指标)                            │
+│  ELK/Loki (日志)                                        │
 └─────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
-## 2. Component Extraction
+## 2. 组件提取
 
-### 2.1 Core Components to Extract
+### 2.1 需要提取的核心组件
 
-The following components form the minimal viable agent for API deployment:
+以下组件构成 API 部署的最小可行 Agent：
 
-#### **Essential Core** (MUST include)
+#### **核心必需组件** (必须包含)
+
 ```
-run_agent.py          # AIAgent class - main conversation loop
-model_tools.py        # Tool orchestration layer
-tools/registry.py     # Central tool registry
-toolsets.py           # Toolset definitions
-hermes_state.py       # Session persistence (upgrade to PostgreSQL)
-hermes_constants.py   # Path helpers, constants
+run_agent.py          # AIAgent 类 - 主对话循环
+model_tools.py        # 工具编排层
+tools/registry.py     # 中央工具注册表
+toolsets.py           # 工具集定义
+hermes_state.py       # 会话持久化 (升级到 PostgreSQL)
+hermes_constants.py   # 路径助手、常量
 ```
 
-#### **Agent Package** (MUST include)
+#### **Agent 包** (必须包含)
+
 ```
 agent/
 ├── __init__.py
-├── memory_manager.py      # Memory context building
-├── prompt_builder.py      # System prompt assembly
-├── context_compressor.py  # Auto context compression
-├── error_classifier.py    # API error classification
-├── model_metadata.py      # Token estimation, limits
-├── prompt_caching.py      # Anthropic cache control
-├── retry_utils.py         # Jittered backoff
-├── usage_pricing.py       # Cost estimation
-└── display.py             # Tool preview formatting
+├── memory_manager.py      # 内存上下文构建
+├── prompt_builder.py      # 系统提示组装
+├── context_compressor.py  # 自动上下文压缩
+├── error_classifier.py    # API 错误分类
+├── model_metadata.py      # Token 估算、限制
+├── prompt_caching.py      # Anthropic 缓存控制
+├── retry_utils.py         # 抖动退避
+├── usage_pricing.py       # 成本估算
+└── display.py             # 工具预览格式化
 ```
 
-#### **Tool Selection** (Production-safe subset)
+#### **工具选择** (生产安全子集)
 
-**Recommended Toolset for Mobile API:**
+**移动 API 推荐工具集：**
+
 ```python
-# Safe, read-only tools (no terminal access)
+# 安全、只读工具（无终端访问）
 SAFE_MOBILE_TOOLS = [
-    # Web research
+    # Web 研究
     "web_search", "web_extract",
-    # File operations (sandboxed)
+    # 文件操作（沙箱）
     "read_file", "write_file", "patch", "search_files",
-    # Vision
+    # 视觉
     "vision_analyze",
-    # Planning & memory
+    # 规划与内存
     "todo", "memory",
-    # Session history
+    # 会话历史
     "session_search",
-    # Code execution (sandboxed only)
-    "execute_code",  # with modal/docker backend
-    # Delegation
+    # 代码执行（仅限沙箱）
+    "execute_code",  # 使用 modal/docker 后端
+    # 委托
     "delegate_task",
 ]
 ```
 
-**Excluded Tools** (Security risk for mobile):
-- `terminal` - Direct shell access
-- `process` - Process management
-- `browser_*` - Heavy resource usage
-- `ha_*` - Home Assistant (requires user config)
-- `send_message` - Messaging platform tools
-- `cronjob` - Scheduled tasks
-- `text_to_speech` - Better handled client-side
+**排除的工具** (移动设备安全风险)：
 
-### 2.2 Dependency Tree
+- `terminal` - 直接 shell 访问
+- `process` - 进程管理
+- `browser_*` - 重量级资源使用
+- `ha_*` - Home Assistant（需要用户配置）
+- `send_message` - 消息平台工具
+- `cronjob` - 计划任务
+- `text_to_speech` - 最好在客户端处理
+
+### 2.2 依赖树
 
 ```
 hermes-agent-api
-├── Core Dependencies
+├── 核心依赖
 │   ├── openai>=2.21.0,<3
 │   ├── anthropic>=0.39.0,<1
 │   ├── httpx[socks]>=0.28.1,<1
 │   ├── pydantic>=2.12.5,<3
 │   └── pyyaml>=6.0.2,<7
 │
-├── Web Tools
+├── Web 工具
 │   ├── exa-py>=2.9.0,<3
 │   ├── firecrawl-py>=4.16.0,<5
 │   └── parallel-web>=0.4.2,<1
 │
-├── Code Execution
-│   ├── modal>=1.0.0,<2  OR  daytona>=0.148.0,<1
+├── 代码执行
+│   ├── modal>=1.0.0,<2  或  daytona>=0.148.0,<1
 │   └── fal-client>=0.13.1,<1
 │
-├── FastAPI Stack
+├── FastAPI 栈
 │   ├── fastapi>=0.104.0,<1
 │   ├── uvicorn[standard]>=0.24.0,<1
 │   ├── python-jose[cryptography]  # JWT
-│   └── redis>=5.0.0,<6  # Rate limiting
+│   └── redis>=5.0.0,<6  # 速率限制
 │
-└── Observability
+└── 可观测性
     ├── prometheus-client>=0.19.0,<1
     ├── structlog>=24.0.0,<25
     └── sentry-sdk>=2.0.0,<3
 ```
 
----
+***
 
-## 3. FastAPI Service Design
+## 3. FastAPI 服务设计
 
-### 3.1 API Endpoints
+### 3.1 API 端点
 
-#### **3.1.1 Chat Completions (OpenAI-compatible)**
+#### **3.1.1 聊天补全 (OpenAI 兼容)**
 
 ```python
 # POST /api/v1/chat/completions
@@ -196,13 +200,13 @@ async def create_chat_completion(
     auth: AuthData = Depends(require_auth),
 ) -> ChatCompletionResponse:
     """
-    OpenAI-compatible chat completions endpoint.
+    OpenAI 兼容的聊天补全端点。
     
-    Request:
+    请求:
     {
         "model": "claude-opus-4.6",
         "messages": [
-            {"role": "user", "content": "Hello"}
+            {"role": "user", "content": "你好"}
         ],
         "stream": false,
         "max_tokens": 4096,
@@ -213,7 +217,7 @@ async def create_chat_completion(
         }
     }
     
-    Response:
+    响应:
     {
         "id": "chatcmpl-uuid",
         "object": "chat.completion",
@@ -223,7 +227,7 @@ async def create_chat_completion(
             "index": 0,
             "message": {
                 "role": "assistant",
-                "content": "Hello! How can I help?"
+                "content": "你好！我能帮你什么？"
             },
             "finish_reason": "stop"
         }],
@@ -242,7 +246,7 @@ async def create_chat_completion(
     """
 ```
 
-#### **3.1.2 Streaming Support**
+#### **3.1.2 流式支持**
 
 ```python
 # POST /api/v1/chat/completions (stream=true)
@@ -252,16 +256,16 @@ async def create_chat_completion_stream(
     auth: AuthData = Depends(require_auth),
 ) -> StreamingResponse:
     """
-    Server-Sent Events (SSE) streaming for real-time responses.
+    使用 Server-Sent Events (SSE) 流式传输实时响应。
     
-    Yields:
-    data: {"id":"chatcmpl-uuid","choices":[{"delta":{"content":"Hello"}}]}
-    data: {"id":"chatcmpl-uuid","choices":[{"delta":{"content":"!"}}]}
+    产生:
+    data: {"id":"chatcmpl-uuid","choices":[{"delta":{"content":"你"}}]}
+    data: {"id":"chatcmpl-uuid","choices":[{"delta":{"content":"好"}}]}
     data: [DONE]
     """
 ```
 
-#### **3.1.3 Session Management**
+#### **3.1.3 会话管理**
 
 ```python
 # GET /api/v1/chat/sessions
@@ -271,7 +275,7 @@ async def list_sessions(
     offset: int = 0,
     auth: AuthData = Depends(require_auth),
 ) -> ListSessionsResponse:
-    """List user's conversation sessions."""
+    """列出用户的对话会话。"""
 
 # GET /api/v1/chat/sessions/{session_id}
 @router.get("/sessions/{session_id}")
@@ -279,7 +283,7 @@ async def get_session(
     session_id: str,
     auth: AuthData = Depends(require_auth),
 ) -> SessionDetail:
-    """Get session details with message history."""
+    """获取会话详情及消息历史。"""
 
 # DELETE /api/v1/chat/sessions/{session_id}
 @router.delete("/sessions/{session_id}")
@@ -287,7 +291,7 @@ async def delete_session(
     session_id: str,
     auth: AuthData = Depends(require_auth),
 ) -> dict:
-    """Delete a session and all its messages."""
+    """删除会话及其所有消息。"""
 
 # POST /api/v1/chat/sessions/{session_id}/title
 @router.post("/sessions/{session_id}/title")
@@ -296,10 +300,10 @@ async def update_session_title(
     title: str,
     auth: AuthData = Depends(require_auth),
 ) -> dict:
-    """Update session title."""
+    """更新会话标题。"""
 ```
 
-#### **3.1.4 Tool Management**
+#### **3.1.4 工具管理**
 
 ```python
 # GET /api/v1/tools/list
@@ -308,14 +312,14 @@ async def list_available_tools(
     auth: AuthData = Depends(require_auth),
 ) -> ToolsListResponse:
     """
-    List all available tools for the authenticated user.
+    列出认证用户的所有可用工具。
     
-    Response:
+    响应:
     {
         "tools": [
             {
                 "name": "web_search",
-                "description": "Search the web",
+                "description": "搜索网络",
                 "toolset": "web",
                 "available": true
             },
@@ -325,13 +329,13 @@ async def list_available_tools(
     """
 ```
 
-#### **3.1.5 Health & Metrics**
+#### **3.1.5 健康与指标**
 
 ```python
 # GET /health
 @router.get("/health")
 async def health_check() -> dict:
-    """Basic health check."""
+    """基础健康检查。"""
 
 # GET /ready
 @router.get("/ready")
@@ -339,15 +343,15 @@ async def readiness_check(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> dict:
-    """Kubernetes readiness probe - checks DB, Redis, LLM connectivity."""
+    """Kubernetes 就绪探针 - 检查数据库、Redis、LLM 连接。"""
 
 # GET /metrics
 @router.get("/metrics")
 async def metrics() -> str:
-    """Prometheus metrics endpoint."""
+    """Prometheus 指标端点。"""
 ```
 
-### 3.2 Request/Response Models
+### 3.2 请求/响应模型
 
 ```python
 # schemas/chat.py
@@ -361,7 +365,7 @@ class Message(BaseModel):
     content: Optional[str] = None
     tool_call_id: Optional[str] = None
     tool_calls: Optional[List[Dict[str, Any]]] = None
-    reasoning: Optional[str] = None  # For models with reasoning
+    reasoning: Optional[str] = None  # 用于具有推理能力的模型
 
 class ChatCompletionRequest(BaseModel):
     model: str = "anthropic/claude-opus-4.6"
@@ -373,15 +377,15 @@ class ChatCompletionRequest(BaseModel):
     frequency_penalty: Optional[float] = 0.0
     presence_penalty: Optional[float] = 0.0
     
-    # Session management
+    # 会话管理
     session_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     
-    # Tool configuration
+    # 工具配置
     enabled_toolsets: Optional[List[str]] = None
     disabled_tools: Optional[List[str]] = None
     
-    # Budget control
+    # 预算控制
     max_iterations: int = 50
     max_cost_usd: Optional[float] = 0.10
 
@@ -423,7 +427,7 @@ class ListSessionsResponse(BaseModel):
     offset: int
 ```
 
-### 3.3 Service Layer
+### 3.3 服务层
 
 ```python
 # services/agent_service.py
@@ -435,14 +439,14 @@ from tools.registry import registry
 
 class AgentService:
     """
-    Core agent service wrapping AIAgent for API consumption.
+    核心 Agent 服务，为 API 消费封装 AIAgent。
     
-    Handles:
-    - Session management
-    - Tool execution
-    - Token tracking
-    - Cost estimation
-    - Streaming responses
+    处理:
+    - 会话管理
+    - 工具执行
+    - Token 跟踪
+    - 成本估算
+    - 流式响应
     """
     
     def __init__(
@@ -468,13 +472,13 @@ class AgentService:
         stream: bool = False,
     ) -> ChatCompletionResponse:
         """
-        Execute a single chat turn.
+        执行单个聊天轮次。
         
-        1. Create/load session
-        2. Initialize AIAgent with tool definitions
-        3. Run conversation loop
-        4. Save messages to session
-        5. Return response with usage stats
+        1. 创建/加载会话
+        2. 初始化工具定义的 AIAgent
+        3. 运行对话循环
+        4. 保存消息到会话
+        5. 返回带使用统计的响应
         """
         
     async def chat_stream(
@@ -485,19 +489,19 @@ class AgentService:
         user_id: str,
     ) -> AsyncGenerator[str, None]:
         """
-        Stream chat response using Server-Sent Events.
+        使用 Server-Sent Events 流式传输聊天响应。
         
-        Yields JSON chunks as they become available.
+        在可用时产生 JSON 块。
         """
 ```
 
----
+***
 
-## 4. Authentication & Security
+## 4. 认证与安全
 
-### 4.1 Authentication Strategy
+### 4.1 认证策略
 
-**JWT-based Authentication** with API Key fallback:
+**基于 JWT 的认证**，带 API Key 后备：
 
 ```python
 # middleware/auth.py
@@ -518,16 +522,16 @@ async def require_auth(
     credentials: HTTPAuthorizationCredentials = Security(security),
 ) -> AuthData:
     """
-    Validate JWT token from Authorization header.
+    验证 Authorization header 中的 JWT token。
     
-    Token format: Bearer <jwt_token>
+    Token 格式：Bearer <jwt_token>
     
     Claims:
     - sub: user_id
-    - api_key_id: identifier of the API key used
-    - permissions: list of allowed operations
-    - rate_limit_tier: rate limiting tier
-    - exp: expiration timestamp
+    - api_key_id: 使用的 API Key 标识符
+    - permissions: 允许的操作列表
+    - rate_limit_tier: 速率限制层级
+    - exp: 过期时间戳
     """
     try:
         payload = jwt.decode(
@@ -544,12 +548,12 @@ async def require_auth(
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="认证凭据无效",
             headers={"WWW-Authenticate": "Bearer"},
         )
 ```
 
-### 4.2 API Key Management
+### 4.2 API Key 管理
 
 ```python
 # models/api_key.py
@@ -562,9 +566,9 @@ class APIKey(Base):
     
     id = Column(String, primary_key=True, default=lambda: f"key_{secrets.token_urlsafe(24)}")
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    name = Column(String, nullable=False)  # User-provided name (e.g., "Android App")
-    key_hash = Column(String, nullable=False)  # Hashed key (bcrypt)
-    key_prefix = Column(String, nullable=False)  # First 8 chars for identification
+    name = Column(String, nullable=False)  # 用户提供的名称（如"Android 应用"）
+    key_hash = Column(String, nullable=False)  # 哈希密钥 (bcrypt)
+    key_prefix = Column(String, nullable=False)  # 前 8 个字符用于识别
     permissions = Column(JSON, default=["chat:create", "sessions:read"])
     rate_limit_tier = Column(String, default="free")
     is_active = Column(Boolean, default=True)
@@ -574,7 +578,7 @@ class APIKey(Base):
     
     @classmethod
     def create(cls, user_id: str, name: str, permissions: List[str] = None) -> "APIKey":
-        """Generate a new API key."""
+        """生成新的 API Key。"""
         raw_key = f"sk_{secrets.token_urlsafe(32)}"
         key_hash = bcrypt.hashpw(raw_key.encode(), bcrypt.gensalt()).decode()
         key_prefix = raw_key[:8]
@@ -588,11 +592,11 @@ class APIKey(Base):
         )
     
     def verify(self, raw_key: str) -> bool:
-        """Verify the raw key against the hash."""
+        """验证原始密钥与哈希。"""
         return bcrypt.checkpw(raw_key.encode(), self.key_hash.encode())
 ```
 
-### 4.3 Rate Limiting
+### 4.3 速率限制
 
 ```python
 # middleware/rate_limiter.py
@@ -613,15 +617,15 @@ async def rate_limit_middleware(
     auth: AuthData,
 ):
     """
-    Rate limiting using Redis sliding window.
+    使用 Redis 滑动窗口进行速率限制。
     
     Keys:
-    - rate_limit:{user_id}:requests  (sorted set, score=timestamp)
-    - rate_limit:{user_id}:tokens    (counter, reset daily)
+    - rate_limit:{user_id}:requests  (有序集合，score=时间戳)
+    - rate_limit:{user_id}:tokens    (计数器，每日重置)
     """
     limits = RATE_LIMITS.get(auth.rate_limit_tier, RATE_LIMITS["free"])
     
-    # Check requests per minute
+    # 检查每分钟请求数
     now = time.time()
     window_start = now - 60
     
@@ -632,46 +636,46 @@ async def rate_limit_middleware(
     if count >= limits["requests_per_minute"]:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Rate limit exceeded. Try again in 1 minute.",
+            detail="超过速率限制。请 1 分钟后重试。",
             headers={"X-RateLimit-Reset": str(int(window_start + 60))},
         )
     
-    # Check tokens per day
+    # 检查每日 token 数
     token_key = f"rate_limit:{auth.user_id}:tokens"
     tokens_used = await redis.get(token_key) or 0
     
-    # Increment request count
+    # 增加请求计数
     redis.zadd(key, {str(uuid.uuid4()): now})
-    redis.expire(key, 120)  # 2 minute TTL
+    redis.expire(key, 120)  # 2 分钟 TTL
     
     response = await call_next(request)
     
-    # Update token count from response
+    # 从响应更新 token 计数
     if hasattr(response, "body"):
-        # Parse usage from response body
+        # 从响应体解析使用情况
         pass
     
     return response
 ```
 
-### 4.4 Security Checklist
+### 4.4 安全检查清单
 
-- [ ] **Input Validation**: All user inputs validated with Pydantic
-- [ ] **SQL Injection Prevention**: SQLAlchemy ORM with parameterized queries
-- [ ] **XSS Prevention**: HTML sanitization on all text outputs
-- [ ] **CORS Configuration**: Strict origin whitelist for Android app
-- [ ] **HTTPS Only**: TLS 1.3 enforced
-- [ ] **API Key Hashing**: bcrypt with salt
-- [ ] **JWT Expiration**: Short-lived tokens (15 min) with refresh tokens
-- [ ] **Request Size Limits**: Max 10MB per request
-- [ ] **Timeout Enforcement**: Max 120s per request
-- [ ] **Audit Logging**: All API calls logged with user ID, timestamp, action
+- [ ] **输入验证**: 所有用户输入使用 Pydantic 验证
+- [ ] **SQL 注入防护**: SQLAlchemy ORM 带参数化查询
+- [ ] **XSS 防护**: 所有文本输出进行 HTML 清理
+- [ ] **CORS 配置**: Android 应用的严格来源白名单
+- [ ] **仅 HTTPS**: 强制 TLS 1.3
+- [ ] **API Key 哈希**: bcrypt 加盐
+- [ ] **JWT 过期**: 短期 token（15 分钟）带刷新 token
+- [ ] **请求大小限制**: 每个请求最大 10MB
+- [ ] **超时强制**: 每个请求最大 120 秒
+- [ ] **审计日志**: 所有 API 调用记录用户 ID、时间戳、操作
 
----
+***
 
-## 5. Deployment Architecture
+## 5. 部署架构
 
-### 5.1 Kubernetes Deployment
+### 5.1 Kubernetes 部署
 
 ```yaml
 # k8s/deployment.yaml
@@ -788,35 +792,35 @@ spec:
         periodSeconds: 60
 ```
 
-### 5.2 Docker Configuration
+### 5.2 Docker 配置
 
 ```dockerfile
 # Dockerfile
 FROM python:3.12-slim
 
-# Security: non-root user
+# 安全：非 root 用户
 RUN useradd --create-home --shell /bin/bash hermes
 USER hermes
 
 WORKDIR /app
 
-# Install dependencies
+# 安装依赖
 COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
-# Copy application
+# 复制应用
 COPY --chown=hermes:hermes . .
 
-# Health check
+# 健康检查
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/health')"
 
-# Run with uvicorn
+# 使用 uvicorn 运行
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 ```
 
 ```yaml
-# docker-compose.yml (for local development)
+# docker-compose.yml (用于本地开发)
 version: '3.8'
 
 services:
@@ -863,78 +867,80 @@ volumes:
   redis_data:
 ```
 
-### 5.3 Infrastructure Requirements
+### 5.3 基础设施需求
 
-**Production (10k DAU target):**
-- **Kubernetes Cluster**: 3-5 nodes (4 CPU, 16GB RAM each)
-- **PostgreSQL**: Managed (AWS RDS / GCP Cloud SQL) - 2 vCPU, 8GB RAM
-- **Redis**: Managed (ElastiCache / Memorystore) - 1GB cache
-- **Load Balancer**: AWS ALB / GCP Load Balancing
-- **Object Storage**: S3 / GCS for file storage
-- **CDN**: CloudFlare / CloudFront for static assets
+**生产环境 (1 万日活目标):**
 
-**Estimated Monthly Cost (AWS):**
-- EKS Cluster: $73.50
-- 3x m5.xlarge nodes: ~$150
-- RDS PostgreSQL (db.t3.medium): ~$60
-- ElastiCache Redis (cache.t3.small): ~$20
-- ALB: ~$25
-- **Total**: ~$330/month (excluding API costs)
+- **Kubernetes 集群**: 3-5 个节点（4 CPU, 16GB RAM 每个）
+- **PostgreSQL**: 托管服务 (AWS RDS / GCP Cloud SQL) - 2 vCPU, 8GB RAM
+- **Redis**: 托管服务 (ElastiCache / Memorystore) - 1GB 缓存
+- **负载均衡器**: AWS ALB / GCP 负载均衡
+- **对象存储**: S3 / GCS 用于文件存储
+- **CDN**: CloudFlare / CloudFront 用于静态资源
 
----
+**预估月度成本 (AWS):**
 
-## 6. Configuration Management
+- EKS 集群：$73.50
+- 3x m5.xlarge 节点：\~$150
+- RDS PostgreSQL (db.t3.medium): \~$60
+- ElastiCache Redis (cache.t3.small): \~$20
+- ALB: \~$25
+- **总计**: \~$330/月（不含 API 成本）
 
-### 6.1 Environment Variables
+***
+
+## 6. 配置管理
+
+### 6.1 环境变量
 
 ```bash
 # .env.example
 
-# Database
+# 数据库
 DATABASE_URL=postgresql://user:pass@localhost:5432/hermes
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
 
-# JWT Configuration
+# JWT 配置
 JWT_SECRET_KEY=your-secret-key-min-32-chars
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_MINUTES=15
 JWT_REFRESH_EXPIRATION_DAYS=30
 
-# LLM Providers
+# LLM 提供商
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 OPENROUTER_API_KEY=sk-or-...
 
-# Tool Configuration
+# 工具配置
 FIRECRAWL_API_KEY=fc-...
 EXA_API_KEY=exa-...
 
-# Security
+# 安全
 CORS_ORIGINS=https://your-android-app.com
 ALLOWED_HOSTS=api.example.com
 
-# Rate Limiting
+# 速率限制
 RATE_LIMIT_REDIS_URL=redis://localhost:6379/1
 
-# Logging
+# 日志
 LOG_LEVEL=INFO
 LOG_FORMAT=json
 SENTRY_DSN=https://...@sentry.io/...
 
-# Feature Flags
+# 功能开关
 ENABLED_TOOLSETS=hermes-api-server
 DISABLED_TOOLSETS=messaging,homeassistant
 MAX_ITERATIONS_DEFAULT=50
 MAX_COST_PER_REQUEST_USD=0.10
 
-# Session Management
+# 会话管理
 SESSION_MAX_AGE_DAYS=90
 SESSION_PRUNE_INTERVAL_HOURS=24
 ```
 
-### 6.2 Settings Module
+### 6.2 配置模块
 
 ```python
 # api/config.py
@@ -943,7 +949,7 @@ from functools import lru_cache
 from typing import List
 
 class Settings(BaseSettings):
-    # Database
+    # 数据库
     database_url: str
     redis_url: str
     
@@ -952,34 +958,34 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 15
     
-    # LLM Providers
+    # LLM 提供商
     anthropic_api_key: str
     openai_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
     
-    # Tools
+    # 工具
     firecrawl_api_key: Optional[str] = None
     exa_api_key: Optional[str] = None
     
-    # Security
+    # 安全
     cors_origins: List[str] = ["*"]
     allowed_hosts: List[str] = ["*"]
     
-    # Rate Limiting
+    # 速率限制
     rate_limit_redis_url: Optional[str] = None
     
-    # Logging
+    # 日志
     log_level: str = "INFO"
     log_format: str = "json"
     sentry_dsn: Optional[str] = None
     
-    # Feature Flags
+    # 功能开关
     enabled_toolsets: List[str] = ["hermes-api-server"]
     disabled_toolsets: List[str] = []
     max_iterations_default: int = 50
     max_cost_per_request_usd: float = 0.10
     
-    # Session Management
+    # 会话管理
     session_max_age_days: int = 90
     session_prune_interval_hours: int = 24
     
@@ -992,16 +998,16 @@ def get_settings() -> Settings:
     return Settings()
 ```
 
----
+***
 
-## 7. Database & State Management
+## 7. 数据库与状态管理
 
-### 7.1 PostgreSQL Schema
+### 7.1 PostgreSQL 模式
 
 ```sql
 -- migrations/001_initial_schema.sql
 
--- Users table
+-- 用户表
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -1030,7 +1036,7 @@ CREATE TABLE api_keys (
 CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
 CREATE INDEX idx_api_keys_key_prefix ON api_keys(key_prefix);
 
--- Sessions (upgraded from SQLite)
+-- 会话表 (从 SQLite 升级)
 CREATE TABLE sessions (
     id TEXT PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1068,7 +1074,7 @@ CREATE INDEX idx_sessions_parent ON sessions(parent_session_id);
 CREATE INDEX idx_sessions_started ON sessions(started_at DESC);
 CREATE UNIQUE INDEX idx_sessions_title_unique ON sessions(title) WHERE title IS NOT NULL;
 
--- Messages
+-- 消息表
 CREATE TABLE messages (
     id BIGSERIAL PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
@@ -1088,10 +1094,10 @@ CREATE TABLE messages (
 CREATE INDEX idx_messages_session ON messages(session_id, timestamp);
 CREATE INDEX idx_messages_role ON messages(role);
 
--- FTS5 equivalent for PostgreSQL
+-- PostgreSQL 的 FTS5 等效
 CREATE INDEX idx_messages_content_gin ON messages USING gin(to_tsvector('english', content));
 
--- Audit Logs
+-- 审计日志
 CREATE TABLE audit_logs (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
@@ -1108,7 +1114,7 @@ CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 
--- Function to update updated_at timestamp
+-- 更新 updated_at 时间戳的函数
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1121,7 +1127,7 @@ CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-### 7.2 SQLAlchemy Models
+### 7.2 SQLAlchemy 模型
 
 ```python
 # models/session.py
@@ -1159,14 +1165,14 @@ class Session(Base):
     user: Mapped["User"] = relationship(back_populates="sessions")
 ```
 
-### 7.3 Migration from SQLite
+### 7.3 从 SQLite 迁移
 
 ```python
 # scripts/migrate_sqlite_to_postgres.py
 """
-Migrate existing SQLite sessions to PostgreSQL.
+将现有 SQLite 会话迁移到 PostgreSQL。
 
-Usage:
+用法:
     python -m scripts.migrate_sqlite_to_postgres \
         --sqlite-path ~/.hermes/state.db \
         --postgres-url postgresql://user:pass@localhost:5432/hermes
@@ -1178,71 +1184,71 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 async def migrate(sqlite_path: str, postgres_url: str):
-    # Connect to SQLite
+    # 连接到 SQLite
     sqlite_conn = sqlite3.connect(sqlite_path)
     sqlite_conn.row_factory = sqlite3.Row
     
-    # Connect to PostgreSQL
+    # 连接到 PostgreSQL
     engine = create_async_engine(postgres_url)
     async_session = sessionmaker(engine, class_=AsyncSession)
     
     async with async_session() as session:
-        # Migrate sessions
+        # 迁移会话
         sqlite_cursor = sqlite_conn.execute(
             "SELECT * FROM sessions ORDER BY started_at"
         )
         for row in sqlite_cursor:
             session_dict = dict(row)
-            # Transform and insert into PostgreSQL
-            # ... migration logic ...
+            # 转换并插入到 PostgreSQL
+            # ... 迁移逻辑 ...
         
         await session.commit()
     
     sqlite_conn.close()
 ```
 
----
+***
 
-## 8. Tool Configuration
+## 8. 工具配置
 
-### 8.1 Toolset Configuration for Mobile
+### 8.1 移动设备工具集配置
 
 ```python
 # api/tool_config.py
 from typing import Dict, List
 
-# Safe tool configuration for mobile API
+# 移动 API 的安全工具配置
 MOBILE_SAFE_TOOLSETS = {
     "web": {
-        "description": "Web research tools",
+        "description": "Web 研究工具",
         "tools": ["web_search", "web_extract"],
         "requires_env": ["FIRECRAWL_API_KEY", "EXA_API_KEY"],
     },
     "file": {
-        "description": "File operations (sandboxed)",
+        "description": "文件操作（沙箱）",
         "tools": ["read_file", "write_file", "patch", "search_files"],
         "sandbox_only": True,
     },
     "vision": {
-        "description": "Image analysis",
+        "description": "图像分析",
         "tools": ["vision_analyze"],
         "requires_env": ["ANTHROPIC_API_KEY"],
     },
     "code_execution": {
-        "description": "Sandboxed code execution",
+        "description": "沙箱代码执行",
         "tools": ["execute_code"],
-        "requires_backend": "modal",  # or "daytona"
+        "requires_backend": "modal",  # 或 "daytona"
     },
     "planning": {
-        "description": "Task planning and memory",
+        "description": "任务规划和内存",
         "tools": ["todo", "memory"],
     },
 }
 
-# Default toolset for API users
+# API 用户的默认工具集
 DEFAULT_API_TOOLSET = "hermes-api-server"
 
-# Tools excluded from API (security concerns)
+# 从 API 排除的工具（安全问题）
 EXCLUDED_TOOLS = {
     "terminal",
     "process",
@@ -1266,23 +1272,23 @@ EXCLUDED_TOOLS = {
 }
 ```
 
-### 8.2 Sandboxed Code Execution
+### 8.2 沙箱代码执行
 
 ```python
 # api/code_execution_backend.py
 """
-Configure sandboxed code execution backend.
+配置沙箱代码执行后端。
 
-Options:
-1. Modal (recommended for production)
-2. Daytona (alternative managed sandbox)
-3. Docker (self-hosted, more complex)
+选项:
+1. Modal（推荐用于生产）
+2. Daytona（替代托管沙箱）
+3. Docker（自托管，更复杂）
 """
 
 from typing import Optional
 from modal import Stub, Image, Volume
 
-# Modal configuration
+# Modal 配置
 stub = Stub("hermes-code-execution")
 
 sandbox_image = (
@@ -1302,7 +1308,7 @@ sandbox_image = (
     memory=1024,
 )
 def execute_code_modal(code: str, timeout: int = 60) -> dict:
-    """Execute Python code in a Modal sandbox."""
+    """在 Modal 沙箱中执行 Python 代码。"""
     import subprocess
     import tempfile
     import os
@@ -1329,7 +1335,7 @@ def execute_code_modal(code: str, timeout: int = 60) -> dict:
         except subprocess.TimeoutExpired:
             return {
                 "success": False,
-                "error": f"Code execution timed out after {timeout}s",
+                "error": f"代码执行在 {timeout} 秒后超时",
             }
         except Exception as e:
             return {
@@ -1338,67 +1344,67 @@ def execute_code_modal(code: str, timeout: int = 60) -> dict:
             }
 ```
 
----
+***
 
-## 9. Monitoring & Observability
+## 9. 监控与可观测性
 
-### 9.1 Metrics (Prometheus)
+### 9.1 指标 (Prometheus)
 
 ```python
 # api/metrics.py
 from prometheus_client import Counter, Histogram, Gauge
 from typing import Dict
 
-# Request metrics
+# 请求指标
 REQUEST_COUNT = Counter(
     "hermes_requests_total",
-    "Total number of requests",
+    "请求总数",
     ["endpoint", "method", "status_code"],
 )
 
 REQUEST_DURATION = Histogram(
     "hermes_request_duration_seconds",
-    "Request duration in seconds",
+    "请求持续时间（秒）",
     ["endpoint"],
     buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
 )
 
-# Token usage
+# Token 使用
 TOKEN_USAGE = Counter(
     "hermes_tokens_total",
-    "Total tokens used",
+    "使用的 Token 总数",
     ["model", "type"],  # type: prompt, completion, cache_read, cache_write
 )
 
-# Cost tracking
+# 成本跟踪
 COST_USD = Counter(
     "hermes_cost_usd_total",
-    "Total cost in USD",
+    "总成本（美元）",
     ["model", "user_tier"],
 )
 
-# Active sessions
+# 活跃会话
 ACTIVE_SESSIONS = Gauge(
     "hermes_active_sessions",
-    "Number of active sessions",
+    "活跃会话数",
 )
 
-# Tool usage
+# 工具调用
 TOOL_CALLS = Counter(
     "hermes_tool_calls_total",
-    "Total tool calls",
+    "工具调用总数",
     ["tool_name", "success"],
 )
 
-# Rate limiting
+# 速率限制命中
 RATE_LIMIT_HITS = Counter(
     "hermes_rate_limit_hits_total",
-    "Number of rate limit hits",
+    "速率限制命中总数",
     ["user_tier"],
 )
 ```
 
-### 9.2 Structured Logging
+### 9.2 结构化日志
 
 ```python
 # api/logging_config.py
@@ -1407,7 +1413,7 @@ from pythonjsonlogger import jsonlogger
 import logging
 
 def setup_logging(log_level: str = "INFO", log_format: str = "json"):
-    """Configure structured logging."""
+    """配置结构化日志。"""
     
     if log_format == "json":
         handler = logging.StreamHandler()
@@ -1439,7 +1445,7 @@ def setup_logging(log_level: str = "INFO", log_format: str = "json"):
     )
 ```
 
-### 9.3 Distributed Tracing
+### 9.3 分布式追踪
 
 ```python
 # api/tracing.py
@@ -1449,7 +1455,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 def setup_tracing(service_name: str = "hermes-agent-api"):
-    """Configure OpenTelemetry tracing."""
+    """配置 OpenTelemetry 追踪。"""
     
     provider = TracerProvider()
     processor = BatchSpanProcessor(
@@ -1461,14 +1467,14 @@ def setup_tracing(service_name: str = "hermes-agent-api"):
     return trace.get_tracer(service_name)
 ```
 
-### 9.4 Alerting Rules
+### 9.4 告警规则
 
 ```yaml
 # k8s/alerts.yaml
 groups:
 - name: hermes-agent-alerts
   rules:
-  - alert: HighErrorRate
+  - alert: 高错误率
     expr: |
       sum(rate(hermes_requests_total{status_code=~"5.."}[5m])) 
       / sum(rate(hermes_requests_total[5m])) > 0.05
@@ -1476,10 +1482,10 @@ groups:
     labels:
       severity: critical
     annotations:
-      summary: "High error rate detected"
-      description: "Error rate is {{ $value | humanizePercentage }}"
+      summary: "检测到高错误率"
+      description: "错误率为 {{ $value | humanizePercentage }}"
   
-  - alert: HighLatency
+  - alert: 高延迟
     expr: |
       histogram_quantile(0.95, 
         sum(rate(hermes_request_duration_seconds_bucket[5m])) by (le)
@@ -1488,58 +1494,58 @@ groups:
     labels:
       severity: warning
     annotations:
-      summary: "High latency detected"
-      description: "P95 latency is {{ $value }}s"
+      summary: "检测到高延迟"
+      description: "P95 延迟为 {{ $value }} 秒"
   
-  - alert: TokenUsageSpike
+  - alert: Token 使用峰值
     expr: |
       sum(rate(hermes_tokens_total[1h])) > 1000000
     for: 1h
     labels:
       severity: warning
     annotations:
-      summary: "High token usage"
-      description: "Token usage is {{ $value }} tokens/hour"
+      summary: "高 Token 使用量"
+      description: "Token 使用量为 {{ $value }} tokens/小时"
   
-  - alert: DatabaseConnectionPoolExhausted
+  - alert: 数据库连接池耗尽
     expr: |
       pg_stat_activity_count / pg_settings_max_connections > 0.9
     for: 5m
     labels:
       severity: critical
     annotations:
-      summary: "Database connection pool nearly exhausted"
+      summary: "数据库连接池几乎耗尽"
 ```
 
----
+***
 
-## 10. Scaling Strategy
+## 10. 扩展策略
 
-### 10.1 Horizontal Scaling
+### 10.1 水平扩展
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Kubernetes HPA Configuration               │
+│              Kubernetes HPA 配置                         │
 ├─────────────────────────────────────────────────────────┤
-│ Min Replicas: 3                                         │
-│ Max Replicas: 20                                        │
+│ 最小副本数：3                                           │
+│ 最大副本数：20                                          │
 │                                                         │
-│ Scale Up When:                                          │
-│ - CPU > 70% average                                     │
-│ - Memory > 80% average                                  │
-│ - Request queue > 100                                   │
+│ 扩容条件:                                               │
+│ - CPU > 70% 平均                                        │
+│ - 内存 > 80% 平均                                       │
+│ - 请求队列 > 100                                        │
 │                                                         │
-│ Scale Down When:                                        │
-│ - CPU < 30% for 5 minutes                               │
-│ - Memory < 50% for 5 minutes                            │
+│ 缩容条件:                                               │
+│ - CPU < 30% 持续 5 分钟                                  │
+│ - 内存 < 50% 持续 5 分钟                                 │
 │                                                         │
-│ Cooldown:                                               │
-│ - Scale up: immediate                                   │
-│ - Scale down: 5 minutes                                 │
+│ 冷却时间:                                               │
+│ - 扩容：立即                                            │
+│ - 缩容：5 分钟                                          │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 10.2 Caching Strategy
+### 10.2 缓存策略
 
 ```python
 # api/caching.py
@@ -1550,33 +1556,33 @@ import hashlib
 
 class CacheManager:
     """
-    Multi-layer caching strategy.
+    多层缓存策略。
     
-    Layers:
-    1. LRU Cache (in-memory) - Hot data (< 100MB)
-    2. Redis Cache - Session data, rate limits
-    3. Database - Persistent storage
+    层:
+    1. LRU 缓存 (内存) - 热数据 (< 100MB)
+    2. Redis 缓存 - 会话数据、速率限制
+    3. 数据库 - 持久存储
     """
     
     def __init__(self, redis: Redis):
         self.redis = redis
-        self._local_cache = {}  # LRU cache
+        self._local_cache = {}  # LRU 缓存
     
     async def get_session(self, session_id: str) -> Optional[dict]:
-        """Get session from cache or database."""
-        # Try L1 cache first
+        """从缓存或数据库获取会话。"""
+        # 首先尝试 L1 缓存
         if session_id in self._local_cache:
             return self._local_cache[session_id]
         
-        # Try Redis
+        # 尝试 Redis
         cached = await self.redis.get(f"session:{session_id}")
         if cached:
             session = json.loads(cached)
             self._local_cache[session_id] = session
             return session
         
-        # Fall back to database
-        # ... database query ...
+        # 回退到数据库
+        # ... 数据库查询 ...
     
     async def cache_tool_result(
         self,
@@ -1585,178 +1591,194 @@ class CacheManager:
         result: str,
         ttl_seconds: int = 3600,
     ):
-        """Cache tool result to avoid recomputation."""
+        """缓存工具结果以避免重新计算。"""
         key = f"tool_result:{tool_name}:{args_hash}"
         await self.redis.setex(key, ttl_seconds, result)
 ```
 
-### 10.3 Database Scaling
+### 10.3 数据库扩展
 
 ```
-PostgreSQL Scaling Strategy:
+PostgreSQL 扩展策略:
 
-1. Read Replicas (10k+ concurrent users)
-   - 1 primary (writes)
-   - 2-3 replicas (reads)
-   - Connection pooling (PgBouncer)
+1. 只读副本 (1 万 + 并发用户)
+   - 1 个主库（写入）
+   - 2-3 个副本（读取）
+   - 连接池 (PgBouncer)
 
-2. Partitioning (100M+ messages)
-   - Partition messages table by month
-   - Automatic partition creation
+2. 分区 (1 亿 + 消息)
+   - 按月份分区消息表
+   - 自动创建分区
 
-3. Archival (90+ days)
-   - Move old sessions to cold storage (S3)
-   - Keep last 90 days in hot storage
+3. 归档 (90+ 天)
+   - 将会话移至冷存储 (S3)
+   - 热存储保留最后 90 天
 ```
 
----
+***
 
-## 11. Implementation Roadmap
+## 11. 实施路线图
 
-### Phase 1: Core API (Week 1-2)
+### 第 1 阶段：核心 API (第 1-2 周)
 
-**Goals:**
-- Extract core agent components
-- Build FastAPI skeleton
-- Implement authentication
-- Basic chat endpoint
+**目标:**
 
-**Deliverables:**
+- 提取核心 Agent 组件
+- 构建 FastAPI 骨架
+- 实现认证
+- 基础聊天端点
+
+**交付物:**
+
 ```
 api/
-├── main.py              # FastAPI app
-├── config.py            # Settings
-├── auth.py              # JWT auth
+├── main.py              # FastAPI 应用
+├── config.py            # 配置
+├── auth.py              # JWT 认证
 ├── schemas/
-│   └── chat.py          # Request/response models
+│   └── chat.py          # 请求/响应模型
 ├── services/
-│   └── agent_service.py # Agent wrapper
+│   └── agent_service.py # Agent 包装器
 └── routers/
-    └── chat.py          # Chat endpoints
+    └── chat.py          # 聊天端点
 ```
 
-**Tasks:**
-1. [ ] Extract `run_agent.py`, `model_tools.py`, `tools/`, `agent/`
-2. [ ] Create FastAPI app structure
-3. [ ] Implement JWT authentication
-4. [ ] Build `/api/v1/chat/completions` endpoint
-5. [ ] Add basic error handling
-6. [ ] Write unit tests for auth + chat
+**任务:**
 
-### Phase 2: Session Management (Week 3)
+1. [ ] 提取 `run_agent.py`, `model_tools.py`, `tools/`, `agent/`
+2. [ ] 创建 FastAPI 应用结构
+3. [ ] 实现 JWT 认证
+4. [ ] 构建 `/api/v1/chat/completions` 端点
+5. [ ] 添加基础错误处理
+6. [ ] 编写认证 + 聊天的单元测试
 
-**Goals:**
-- PostgreSQL integration
-- Session CRUD operations
-- Message history
+### 第 2 阶段：会话管理 (第 3 周)
 
-**Deliverables:**
+**目标:**
+
+- PostgreSQL 集成
+- 会话 CRUD 操作
+- 消息历史
+
+**交付物:**
+
 ```
 api/
 ├── models/
 │   ├── user.py
 │   ├── session.py
 │   └── api_key.py
-├── database.py          # SQLAlchemy setup
+├── database.py          # SQLAlchemy 设置
 └── routers/
-    └── sessions.py      # Session endpoints
+    └── sessions.py      # 会话端点
 ```
 
-**Tasks:**
-1. [ ] Set up PostgreSQL schema
-2. [ ] Implement SQLAlchemy models
-3. [ ] Build session management endpoints
-4. [ ] Add message history retrieval
-5. [ ] Implement session pruning
-6. [ ] Write integration tests
+**任务:**
 
-### Phase 3: Tool Configuration (Week 4)
+1. [ ] 设置 PostgreSQL 模式
+2. [ ] 实现 SQLAlchemy 模型
+3. [ ] 构建会话管理端点
+4. [ ] 添加消息历史检索
+5. [ ] 实现会话修剪
+6. [ ] 编写集成测试
 
-**Goals:**
-- Configure safe toolsets
-- Set up sandboxed code execution
-- Implement tool filtering
+### 第 3 阶段：工具配置 (第 4 周)
 
-**Tasks:**
-1. [ ] Define mobile-safe toolsets
-2. [ ] Configure Modal/Daytona backend
-3. [ ] Implement tool availability checks
-4. [ ] Add tool filtering by user tier
-5. [ ] Test tool execution in sandbox
-6. [ ] Document tool limitations
+**目标:**
 
-### Phase 4: Rate Limiting & Security (Week 5)
+- 配置安全工具集
+- 设置沙箱代码执行
+- 实现工具过滤
 
-**Goals:**
-- Redis rate limiting
-- Input validation
-- Security hardening
+**任务:**
 
-**Tasks:**
-1. [ ] Set up Redis for rate limiting
-2. [ ] Implement sliding window rate limiter
-3. [ ] Add request size limits
-4. [ ] Configure CORS
-5. [ ] Implement input sanitization
-6. [ ] Security audit + penetration testing
+1. [ ] 定义移动安全工具集
+2. [ ] 配置 Modal/Daytona 后端
+3. [ ] 实现工具可用性检查
+4. [ ] 按用户层级添加工具过滤
+5. [ ] 测试沙箱中的工具执行
+6. [ ] 记录工具限制
 
-### Phase 5: Observability (Week 6)
+### 第 4 阶段：速率限制与安全 (第 5 周)
 
-**Goals:**
-- Structured logging
-- Prometheus metrics
-- Distributed tracing
+**目标:**
 
-**Tasks:**
-1. [ ] Configure structlog
-2. [ ] Set up Prometheus metrics
-3. [ ] Add OpenTelemetry tracing
-4. [ ] Create Grafana dashboards
-5. [ ] Configure alerting rules
-6. [ ] Set up Sentry for error tracking
+- Redis 速率限制
+- 输入验证
+- 安全加固
 
-### Phase 6: Deployment & Testing (Week 7-8)
+**任务:**
 
-**Goals:**
-- Kubernetes deployment
-- Load testing
-- Performance optimization
+1. [ ] 设置 Redis 用于速率限制
+2. [ ] 实现滑动窗口速率限制器
+3. [ ] 添加请求大小限制
+4. [ ] 配置 CORS
+5. [ ] 实现输入清理
+6. [ ] 安全审计 + 渗透测试
 
-**Tasks:**
-1. [ ] Write Dockerfile
-2. [ ] Create Kubernetes manifests
-3. [ ] Set up CI/CD pipeline
-4. [ ] Load testing (locust)
-5. [ ] Performance profiling
-6. [ ] Documentation + API specs
+### 第 5 阶段：可观测性 (第 6 周)
 
-### Phase 7: Android Integration (Week 9-10)
+**目标:**
 
-**Goals:**
+- 结构化日志
+- Prometheus 指标
+- 分布式追踪
+
+**任务:**
+
+1. [ ] 配置 structlog
+2. [ ] 设置 Prometheus 指标
+3. [ ] 添加 OpenTelemetry 追踪
+4. [ ] 创建 Grafana 仪表板
+5. [ ] 配置告警规则
+6. [ ] 设置 Sentry 用于错误跟踪
+
+### 第 6 阶段：部署与测试 (第 7-8 周)
+
+**目标:**
+
+- Kubernetes 部署
+- 负载测试
+- 性能优化
+
+**任务:**
+
+1. [ ] 编写 Dockerfile
+2. [ ] 创建 Kubernetes 清单
+3. [ ] 设置 CI/CD 管道
+4. [ ] 负载测试 (locust)
+5. [ ] 性能分析
+6. [ ] 文档 + API 规范
+
+### 第 7 阶段：Android 集成 (第 9-10 周)
+
+**目标:**
+
 - Android SDK
-- Sample app
-- Documentation
+- 示例应用
+- 文档
 
-**Tasks:**
-1. [ ] Create Android SDK (Kotlin)
-2. [ ] Build sample Android app
-3. [ ] Write integration guide
-4. [ ] API documentation (OpenAPI/Swagger)
-5. [ ] Beta testing with Android app
-6. [ ] Iterate based on feedback
+**任务:**
 
----
+1. [ ] 创建 Android SDK (Kotlin)
+2. [ ] 构建示例 Android 应用
+3. [ ] 编写集成指南
+4. [ ] API 文档 (OpenAPI/Swagger)
+5. [ ] 与 Android 应用进行 Beta 测试
+6. [ ] 根据反馈迭代
 
-## Appendix A: API Reference
+***
 
-### OpenAPI Specification
+## 附录 A: API 参考
+
+### OpenAPI 规范
 
 ```yaml
 openapi: 3.0.0
 info:
   title: Hermes Agent API
   version: 1.0.0
-  description: Production API for Android app integration
+  description: 用于 Android 应用集成的生产 API
 
 servers:
   - url: https://api.example.com/v1
@@ -1764,7 +1786,7 @@ servers:
 paths:
   /chat/completions:
     post:
-      summary: Create chat completion
+      summary: 创建聊天补全
       operationId: createChatCompletion
       requestBody:
         required: true
@@ -1774,17 +1796,17 @@ paths:
               $ref: '#/components/schemas/ChatCompletionRequest'
       responses:
         '200':
-          description: Successful response
+          description: 成功响应
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatCompletionResponse'
         '401':
-          description: Unauthorized
+          description: 未授权
         '429':
-          description: Rate limit exceeded
+          description: 超过速率限制
         '500':
-          description: Server error
+          description: 服务器错误
 
 components:
   securitySchemes:
@@ -1833,9 +1855,9 @@ security:
   - bearerAuth: []
 ```
 
----
+***
 
-## Appendix B: Android SDK Example
+## 附录 B: Android SDK 示例
 
 ```kotlin
 // HermesAgent.kt
@@ -1870,78 +1892,81 @@ class HermesAgent(
         return client.newCall(httpRequest).await()
             .use { response ->
                 if (!response.isSuccessful) {
-                    throw ApiException("Request failed: ${response.code}")
+                    throw ApiException("请求失败：${response.code}")
                 }
                 json.decodeFromString(response.body!!.string())
             }
     }
 }
 
-// Usage in Android App
+// Android 应用中的使用
 val agent = HermesAgent(apiKey = "your-api-key")
 
 lifecycleScope.launch {
     try {
-        val response = agent.chat("What's the weather today?")
+        val response = agent.chat("今天天气怎么样？")
         println(response.choices[0].message.content)
     } catch (e: ApiException) {
-        // Handle error
+        // 处理错误
     }
 }
 ```
 
----
+***
 
-## Appendix C: Cost Estimation
+## 附录 C: 成本估算
 
-### Monthly Operating Costs (10k DAU)
+### 月度运营成本 (1 万日活)
 
-**Infrastructure:**
-- Kubernetes cluster: $330/month
-- PostgreSQL (RDS): $60/month
-- Redis (ElastiCache): $20/month
-- Load balancer: $25/month
-- **Subtotal**: $435/month
+**基础设施:**
 
-**API Costs** (assuming 10 requests/user/day, 500 tokens/request):
+- Kubernetes 集群：$330/月
+- PostgreSQL (RDS): $60/月
+- Redis (ElastiCache): $20/月
+- 负载均衡器：$25/月
+- **小计**: $435/月
+
+**API 成本** (假设 10 请求/用户/天，500 tokens/请求):
+
 - Anthropic Claude Opus: $15 per 1M tokens
-- Daily tokens: 10k users × 10 requests × 500 tokens = 50M tokens/day
-- Monthly tokens: 50M × 30 = 1.5B tokens
-- **API Cost**: 1.5B / 1M × $15 = $22,500/month
+- 每日 tokens: 1 万用户 × 10 请求 × 500 tokens = 5000 万 tokens/天
+- 月度 tokens: 5000 万 × 30 = 15 亿 tokens
+- **API 成本**: 15 亿 / 100 万 × $15 = $22,500/月
 
-**Total Monthly Cost**: ~$23,000
+**总月度成本**: \~$23,000
 
-**Cost Optimization Strategies:**
-1. Use cheaper models for simple queries (Claude Haiku: $0.80/1M)
-2. Implement response caching
-3. Use prompt caching (Anthropic)
-4. Implement context compression
-5. Set per-user token budgets
+**成本优化策略:**
 
----
+1. 对简单查询使用更便宜的模型 (Claude Haiku: $0.80/1M)
+2. 实现响应缓存
+3. 使用提示缓存 (Anthropic)
+4. 实现上下文压缩
+5. 设置每用户 token 预算
 
-## Appendix D: Testing Strategy
+***
 
-### Test Pyramid
+## 附录 D: 测试策略
+
+### 测试金字塔
 
 ```
         /\
-       /  \      E2E Tests (10%)
-      /____\     - Full conversation flows
-     /      \    - Android app integration
+       /  \      E2E 测试 (10%)
+      /____\     - 完整对话流程
+     /      \    - Android 应用集成
     /        \   
-   /__________\  Integration Tests (30%)
-   |          |  - Database operations
-   |          |  - Tool execution
-   |__________|  - Authentication
+   /__________\  集成测试 (30%)
+   |          |  - 数据库操作
+   |          |  - 工具执行
+   |__________|  - 认证
    
-  /____________\ Unit Tests (60%)
-  |            | - Schema validation
-  |            | - Service layer logic
-  |____________| - Utility functions
+  /____________\ 单元测试 (60%)
+  |            | - 模式验证
+  |            | - 服务层逻辑
+  |____________| - 工具函数
 ```
 
-### Example Tests
+### 示例测试
 
 ```python
 # tests/test_chat_endpoint.py
@@ -1953,7 +1978,7 @@ client = TestClient(app)
 
 @pytest.fixture
 def auth_token():
-    # Generate test JWT token
+    # 生成测试 JWT token
     return generate_test_token()
 
 def test_chat_completion(auth_token):
@@ -1961,7 +1986,7 @@ def test_chat_completion(auth_token):
         "/api/v1/chat/completions",
         json={
             "model": "claude-opus-4.6",
-            "messages": [{"role": "user", "content": "Hello"}],
+            "messages": [{"role": "user", "content": "你好"}],
         },
         headers={"Authorization": f"Bearer {auth_token}"},
     )
@@ -1971,28 +1996,30 @@ def test_chat_completion(auth_token):
     assert len(data["choices"]) > 0
 
 def test_rate_limiting():
-    # Send 21 requests in 1 minute (free tier limit: 20)
+    # 1 分钟内发送 21 个请求（免费层限制：20）
     for i in range(21):
         response = client.post(...)
     
     assert response.status_code == 429
 ```
 
----
+***
 
-## Conclusion
+## 结论
 
-This specification provides a comprehensive blueprint for deploying Hermes Agent as a production API service. The architecture is designed for:
+本规范为将 Hermes Agent 部署为生产 API 服务提供了全面的蓝图。该架构设计考虑了：
 
-- **Security**: JWT auth, rate limiting, sandboxed tools
-- **Scalability**: Kubernetes HPA, read replicas, caching
-- **Observability**: Metrics, logging, tracing
-- **Cost Control**: Token budgets, model routing, caching
+- **安全性**: JWT 认证、速率限制、沙箱工具
+- **可扩展性**: Kubernetes HPA、只读副本、缓存
+- **可观测性**: 指标、日志、追踪
+- **成本控制**: Token 预算、模型路由、缓存
 
-**Next Steps:**
-1. Review and approve specification
-2. Begin Phase 1 implementation
-3. Iterate based on Android app requirements
-4. Deploy to staging environment
-5. Beta test with limited users
-6. Production rollout
+**后续步骤:**
+
+1. 审查并批准规范
+2. 开始第 1 阶段实施
+3. 根据 Android 应用需求迭代
+4. 部署到暂存环境
+5. 与有限用户进行 Beta 测试
+6. 生产发布
+
