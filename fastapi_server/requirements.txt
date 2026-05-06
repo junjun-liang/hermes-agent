@@ -1,0 +1,37 @@
+# Hermes-Agent FastAPI 服务依赖
+
+# 核心依赖
+fastapi>=0.104.0,<1
+uvicorn[standard]>=0.24.0,<1
+pydantic>=2.12.5,<3
+pydantic-settings>=2.0.0,<3
+python-dotenv>=1.0.0,<2
+
+# 认证
+python-jose[cryptography]>=3.3.0,<4
+passlib[bcrypt]>=1.7.4,<2
+
+# HTTP 客户端
+httpx[socks]>=0.28.1,<1
+
+# SSE 流式支持
+sse-starlette>=2.0.0,<3
+
+# 监控
+prometheus-client>=0.19.0,<1
+sentry-sdk[fastapi]>=2.0.0,<3
+
+# 日志
+structlog>=24.0.0,<25
+python-json-logger>=2.0.0,<3
+
+# Redis（速率限制、分布式缓存）
+redis>=5.0.0,<6
+
+# 数据库（可选，用于生产环境）
+sqlalchemy>=2.0.0,<3
+asyncpg>=0.29.0,<1  # PostgreSQL 驱动
+aiosqlite>=0.19.0,<1  # SQLite 异步驱动
+
+# 项目内部依赖（本地安装）
+# 通过 pip install -e . 安装主项目
