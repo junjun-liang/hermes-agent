@@ -53,7 +53,11 @@ class AgentService:
         db_path = settings.session_db_path
         if not db_path:
             hermes_home = get_hermes_home()
-            db_path = str(hermes_home / "state.db")
+            db_path = hermes_home / "state.db"
+        elif isinstance(db_path, str):
+            # 如果是字符串，转换为 Path 对象
+            from pathlib import Path
+            db_path = Path(db_path)
         
         try:
             self.session_db = SessionDB(db_path)

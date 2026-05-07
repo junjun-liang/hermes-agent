@@ -89,7 +89,11 @@ async def readiness_check() -> ReadinessCheck:
     try:
         from hermes_state import SessionDB
         from hermes_constants import get_hermes_home
-        db_path = settings.session_db_path or str(get_hermes_home() / "state.db")
+        from pathlib import Path
+        db_path = settings.session_db_path or (get_hermes_home() / "state.db")
+        # 如果是字符串，转换为 Path 对象
+        if isinstance(db_path, str):
+            db_path = Path(db_path)
         # 尝试加载数据库
         db = SessionDB(db_path)
         database_status = "connected"
