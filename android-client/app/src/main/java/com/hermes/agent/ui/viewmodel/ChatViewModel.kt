@@ -66,6 +66,14 @@ class ChatViewModel @Inject constructor(
             val fullResponse = StringBuilder()
 
             chatRepository.sendStreamMessage(content, currentSessionId)
+                .onCompletion { cause ->
+                    if (cause != null) {
+                        _isLoading.value = false
+                        _error.emit("连接中断: ${cause.message}")
+                    } else if (_isLoading.value) {
+                        _isLoading.value = false
+                    }
+                }
                 .collect { result ->
                     when (result) {
                         is StreamResult.Delta -> {
