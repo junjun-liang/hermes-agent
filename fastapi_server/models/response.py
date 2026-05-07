@@ -65,7 +65,7 @@ class ChatResponse(BaseModel):
         description="工具调用列表",
     )
     
-    usage: UsageInfo = Field(
+    usage: Optional[UsageInfo] = Field(
         default_factory=UsageInfo,
         description="Token 使用量",
     )
