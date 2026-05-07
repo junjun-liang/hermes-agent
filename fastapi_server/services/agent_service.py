@@ -211,6 +211,24 @@ class AgentService:
             end_time = time.time()
             duration = end_time - start_time
             
+            # 处理 result 为 None 的情况（API 调用失败）
+            if result is None:
+                error_msg = "API 调用失败，请检查 API Key 配置和网络连接"
+                logger.error("Agent returned None result: session_id=%s", session_id)
+                return ChatResponse(
+                    session_id=session_id,
+                    model=agent.model,
+                    response=error_msg,
+                    completed=False,
+                    api_calls=0,
+                    iterations=0,
+                    tool_calls=[],
+                    usage=None,
+                    cost_usd=0.0,
+                    duration=round(duration, 2),
+                    metadata=request.metadata,
+                )
+            
             # 更新会话
             self._update_session(session_id, result)
             
