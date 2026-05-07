@@ -299,16 +299,18 @@ class AgentService:
         queue = asyncio.Queue()
         
         def stream_callback(text: str):
-            """流式文本回调"""
+            """流式文本回调 - 使用同步方式放入队列"""
             if text:
-                asyncio.create_task(
-                    queue.put(StreamChunk(
+                try:
+                    # 使用 put_nowait 避免阻塞
+                    queue.put_nowait(StreamChunk(
                         type="text",
                         content=text,
                         session_id=session_id,
                         timestamp=time.time(),
                     ))
-                )
+                except asyncio.QueueFull:
+                    logger.warning("Queue is full, dropping chunk")
         
         try:
             # 在后台线程中运行对话
@@ -319,26 +321,29 @@ class AgentService:
                         system_message=request.system_message,
                         stream_callback=stream_callback,
                     )
-                    # 发送完成信号
-                    asyncio.create_task(
-                        queue.put(StreamChunk(
+                    # 发送完成信号 - 使用同步方式
+                    try:
+                        queue.put_nowait(StreamChunk(
                             type="done",
-                            content=result.get("final_response", ""),
+                            content=result.get("final_response", "") if result else "",
                             session_id=session_id,
                             timestamp=time.time(),
                         ))
-                    )
+                    except asyncio.QueueFull:
+                        pass
                 except Exception as e:
-                    asyncio.create_task(
-                        queue.put(StreamChunk(
+                    try:
+                        queue.put_nowait(StreamChunk(
                             type="error",
                             error=str(e),
                             session_id=session_id,
                             timestamp=time.time(),
                         ))
-                    )
+                    except asyncio.QueueFull:
+                        pass
             
-            loop = asyncio.get_event_loop()
+            # 在后台线程中运行对话
+            loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, run_conversation)
             
             # 流式输出
