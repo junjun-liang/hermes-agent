@@ -229,6 +229,25 @@ class AgentService:
                     metadata=request.metadata,
                 )
             
+            # 检查 final_response 是否存在
+            final_response = result.get("final_response")
+            if final_response is None:
+                error_msg = f"API 调用失败：final_response 为 None，result={result}"
+                logger.error("final_response is None: session_id=%s, result=%s", session_id, result)
+                return ChatResponse(
+                    session_id=session_id,
+                    model=agent.model,
+                    response=error_msg,
+                    completed=False,
+                    api_calls=0,
+                    iterations=0,
+                    tool_calls=[],
+                    usage=None,
+                    cost_usd=0.0,
+                    duration=round(duration, 2),
+                    metadata=request.metadata,
+                )
+            
             # 更新会话
             self._update_session(session_id, result)
             
