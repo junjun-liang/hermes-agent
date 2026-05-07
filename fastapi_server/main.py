@@ -34,24 +34,44 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Prometheus 指标
-REQUEST_COUNT = Counter(
-    "hermes_requests_total",
-    "Total number of requests",
-    ["endpoint", "method", "status_code"],
-)
+# Prometheus 指标（懒加载，避免模块重新加载时重复注册）
+def _get_metrics():
+    """获取指标（避免重复注册）"""
+    from prometheus_client import REGISTRY, CollectorRegistry
+    
+    # 检查是否已注册
+    try:
+        collector = REGISTRY._names_to_collectors.get('hermes_requests_total')
+        if collector is not None:
+            # 已注册，返回现有指标
+            return collector, REGISTRY._names_to_collectors.get('hermes_request_duration_seconds'), REGISTRY._names_to_collectors.get('hermes_agents_active')
+    except (AttributeError, KeyError):
+        pass
+    
+    # 未注册，创建新指标
+    request_count = Counter(
+        "hermes_requests_total",
+        "Total number of requests",
+        ["endpoint", "method", "status_code"],
+    )
+    
+    request_duration = Histogram(
+        "hermes_request_duration_seconds",
+        "Request duration in seconds",
+        ["endpoint"],
+        buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
+    )
+    
+    agents_active = Gauge(
+        "hermes_agents_active",
+        "Number of active agents",
+    )
+    
+    return request_count, request_duration, agents_active
 
-REQUEST_DURATION = Histogram(
-    "hermes_request_duration_seconds",
-    "Request duration in seconds",
-    ["endpoint"],
-    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
-)
 
-AGENTS_ACTIVE = Gauge(
-    "hermes_agents_active",
-    "Number of active agents",
-)
+# 初始化指标
+REQUEST_COUNT, REQUEST_DURATION, AGENTS_ACTIVE = _get_metrics()
 
 
 @asynccontextmanager

@@ -33,8 +33,15 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         """处理请求认证"""
         
-        # 跳过健康检查和文档端点
-        if request.url.path in ["/health", "/ready", "/metrics", "/docs", "/redoc", "/openapi.json"]:
+        # 跳过健康检查、文档和指标端点
+        # 注意：健康检查在 /api/v1/health，不是 /health
+        skip_paths = [
+            "/",  # 根路径
+            "/health", "/ready", "/metrics",  # 根路径
+            "/api/v1/health", "/api/v1/ready", "/api/v1/metrics",  # API v1 路径
+            "/docs", "/redoc", "/openapi.json",  # 文档
+        ]
+        if request.url.path in skip_paths:
             return await call_next(request)
         
         # 尝试 API Key 认证
