@@ -44,6 +44,11 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if request.url.path in skip_paths:
             return await call_next(request)
         
+        # 开发模式：未配置 API Key 和 JWT 密钥时，允许所有请求
+        if not settings.api_keys and not settings.jwt_secret_key:
+            request.state.authenticated = True
+            return await call_next(request)
+        
         # 尝试 API Key 认证
         api_key = request.headers.get(settings.api_key_header)
         if api_key:

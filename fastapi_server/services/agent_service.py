@@ -327,7 +327,7 @@ class AgentService:
             return None
         
         try:
-            session = self.session_db.load(session_id)
+            session = self.session_db.get_session(session_id)
             if not session:
                 return None
             
@@ -443,7 +443,7 @@ class AgentService:
         # 保存到数据库
         if self.session_db:
             try:
-                session = self.session_db.load(session_id)
+                session = self.session_db.get_session(session_id)
                 if session:
                     # 更新现有会话
                     session["updated_at"] = datetime.now().isoformat()
