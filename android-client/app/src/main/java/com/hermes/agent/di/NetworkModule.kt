@@ -1,6 +1,7 @@
 package com.hermes.agent.di
 
 import com.hermes.agent.data.api.HermesApiService
+import com.hermes.agent.data.api.SseClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,14 +13,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
-/**
- * 网络模块 - Hilt 依赖注入
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // 默认服务器地址，实际应从配置中读取
     private const val DEFAULT_BASE_URL = "http://192.168.1.100:8000/"
 
     @Provides
@@ -32,16 +29,20 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)  // 流式响应需要更长的超时
+            .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    fun provideBaseUrl(): String = DEFAULT_BASE_URL
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, baseUrl: String): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(DEFAULT_BASE_URL)
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -51,5 +52,11 @@ object NetworkModule {
     @Singleton
     fun provideHermesApiService(retrofit: Retrofit): HermesApiService {
         return retrofit.create(HermesApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSseClient(okHttpClient: OkHttpClient, baseUrl: String): SseClient {
+        return SseClient(okHttpClient, baseUrl)
     }
 }
