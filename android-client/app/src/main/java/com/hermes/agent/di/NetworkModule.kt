@@ -17,7 +17,10 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val DEFAULT_BASE_URL = "http://192.168.1.100:8000/"
+    // Android 模拟器使用 10.0.2.2 访问宿主机
+    // 如果是真机测试，请改为宿主机的实际 IP 地址，例如：192.168.1.100
+    // 注意：FastAPI 服务运行在 8001 端口
+    private const val DEFAULT_BASE_URL = "http://10.0.2.2:8001/"
 
     @Provides
     @Singleton
@@ -29,7 +32,7 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)  // AI 响应可能需要较长时间
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
