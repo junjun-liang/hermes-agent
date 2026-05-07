@@ -1,6 +1,7 @@
 package com.hermes.agent.ui.screens.chat
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,15 +12,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,7 +37,7 @@ import kotlinx.coroutines.launch
 /**
  * 聊天主界面 - 参考微信风格
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
@@ -73,7 +77,7 @@ fun ChatScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateToSessions) {
                         Icon(
-                            imageVector = Icons.Default.Menu,
+                            imageVector = Icons.Filled.Refresh,
                             contentDescription = "会话列表"
                         )
                     }
@@ -81,7 +85,7 @@ fun ChatScreen(
                 actions = {
                     IconButton(onClick = { viewModel.newSession() }) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            imageVector = Icons.Filled.Add,
                             contentDescription = "新建会话"
                         )
                     }
@@ -226,13 +230,13 @@ fun Avatar(text: String, backgroundColor: Color) {
 /**
  * 输入栏 - 底部输入框
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatInputBar(
     onSendMessage: (String) -> Unit,
     isLoading: Boolean
 ) {
     var text by remember { mutableStateOf("") }
-    val keyboardController = LocalSoftwareKeyboardController.current
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -265,7 +269,6 @@ fun ChatInputBar(
                         if (text.isNotBlank() && !isLoading) {
                             onSendMessage(text)
                             text = ""
-                            keyboardController?.hide()
                         }
                     }
                 ),
@@ -279,14 +282,13 @@ fun ChatInputBar(
                     if (text.isNotBlank() && !isLoading) {
                         onSendMessage(text)
                         text = ""
-                        keyboardController?.hide()
                     }
                 },
                 enabled = text.isNotBlank() && !isLoading,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    imageVector = Icons.Filled.Send,
                     contentDescription = "发送",
                     tint = if (text.isNotBlank() && !isLoading) 
                         MaterialTheme.colorScheme.primary 
@@ -309,7 +311,7 @@ fun EmptyChatHint() {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Chat,
+            imageVector = Icons.Filled.MoreVert,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -360,7 +362,7 @@ fun LoadingIndicator() {
 @Composable
 fun TypingIndicator() {
     val dots = listOf("", ".", "..", "...")
-    var dotIndex by remember { mutableIntStateOf(0) }
+    var dotIndex by remember { mutableStateOf(0) }
     
     LaunchedEffect(Unit) {
         while (true) {

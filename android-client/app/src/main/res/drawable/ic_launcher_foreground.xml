@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 简单的 Hermes Agent 图标 - 使用字母 H -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,30v48h8v-20h24v20h8v-48h-8v20h-24v-20h-8z"/>
+</vector>

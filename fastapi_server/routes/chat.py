@@ -145,7 +145,7 @@ async def create_chat_completion_stream(
         try:
             async for chunk in agent_service.stream_chat(request):
                 # 转换为 SSE 格式
-                data = json.dumps(chunk.model_dump(exclude_none=True))
+                data = json.dumps(chunk.model_dump(exclude_none=True), ensure_ascii=False)
                 yield f"data: {data}\n\n"
                 
                 # 如果是完成或错误，结束流
@@ -159,7 +159,7 @@ async def create_chat_completion_stream(
                 "error": str(e),
                 "timestamp": time.time(),
             }
-            yield f"data: {json.dumps(error_chunk)}\n\n"
+            yield f"data: {json.dumps(error_chunk, ensure_ascii=False)}\n\n"
     
     return StreamingResponse(
         generate_stream(),
