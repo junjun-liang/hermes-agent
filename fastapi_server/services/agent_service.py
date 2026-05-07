@@ -149,9 +149,12 @@ class AgentService:
             agent_kwargs["disabled_toolsets"] = settings.disabled_toolsets
         
         # API 密钥配置（可选覆盖）
+        import os
         api_key = self._get_api_key()
         if api_key:
             agent_kwargs["api_key"] = api_key
+            agent_kwargs["provider"] = "alibaba"
+            agent_kwargs["base_url"] = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
         
         # 创建 Agent 实例
         agent = AIAgent(**agent_kwargs)
@@ -499,12 +502,8 @@ class AgentService:
     def _get_api_key(self) -> Optional[str]:
         """获取 API 密钥"""
         import os
-        # 按优先级检查多个环境变量
-        for key_name in ["DASHSCOPE_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY"]:
-            api_key = os.getenv(key_name)
-            if api_key:
-                return api_key
-        return None
+        
+        return os.getenv("DASHSCOPE_API_KEY")
 
 
 # 全局服务实例（单例）

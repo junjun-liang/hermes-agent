@@ -214,12 +214,12 @@ def _build_agent(session_id: str, request: ChatRequest, config: dict) -> AIAgent
     if request.toolsets:
         agent_kwargs["enabled_toolsets"] = request.toolsets
     
-    # API 密钥配置（可选覆盖）
-    api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+    # API 密钥配置
+    api_key = os.getenv("DASHSCOPE_API_KEY")
     if api_key:
         agent_kwargs["api_key"] = api_key
     
-    base_url = os.getenv("DASHSCOPE_BASE_URL") or os.getenv("OPENROUTER_BASE_URL")
+    base_url = os.getenv("DASHSCOPE_BASE_URL")
     if base_url:
         agent_kwargs["base_url"] = base_url
     

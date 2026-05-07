@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     port: int = 8000
     
     # ========== Agent 核心配置 ==========
-    default_model: str = "dashscope/deepseek-v4-flash"  # 阿里云百炼 DeepSeek V4 Flash
+    default_model: str = "qwen3.5-plus-2026-04-20"  # 阿里云百炼 Qwen3.5-Plus
     max_iterations: int = 90
     tool_delay: float = 1.0
     save_trajectories: bool = False
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     redis_url: Optional[str] = None
     
     class Config:
-        env_file = ".env"
+        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"

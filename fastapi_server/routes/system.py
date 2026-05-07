@@ -118,7 +118,7 @@ async def readiness_check() -> ReadinessCheck:
     try:
         import os
         # 检查 API Key
-        if os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENROUTER_API_KEY"):
+        if os.getenv("DASHSCOPE_API_KEY"):
             llm_status = "available"
         else:
             llm_status = "unavailable"
@@ -230,16 +230,7 @@ async def get_config() -> ConfigResponse:
     """
     
     # 检测 LLM 提供商
-    import os
-    provider = "unknown"
-    if os.getenv("DASHSCOPE_API_KEY"):
-        provider = "dashscope"
-    elif os.getenv("OPENROUTER_API_KEY"):
-        provider = "openrouter"
-    elif os.getenv("ANTHROPIC_API_KEY"):
-        provider = "anthropic"
-    elif os.getenv("OPENAI_API_KEY"):
-        provider = "openai"
+    provider = "alibaba"
     
     # 功能开关
     features = {
