@@ -2,121 +2,117 @@ package com.hermes.agent.data.repository
 
 import com.hermes.agent.data.api.HermesApiService
 import com.hermes.agent.data.api.SseClient
-import com.hermes.agent.data.model.*
+import com.hermes.agent.data.model.ChatRequest
+import com.hermes.agent.data.model.ChatResponse
+import com.hermes.agent.data.model.HealthResponse
+import com.hermes.agent.data.model.SessionDetail
+import com.hermes.agent.data.model.SessionInfo
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * 聊天数据仓库
+ */
 @Singleton
 class ChatRepository @Inject constructor(
     private val apiService: HermesApiService,
     private val sseClient: SseClient
 ) {
 
+    /**
+     * 健康检查
+     */
+    suspend fun healthCheck(): Result<HealthResponse> {
+        return try {
+            val response = apiService.healthCheck()
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("健康检查失败: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 发送消息（非流式）
+     */
     suspend fun sendMessage(
         message: String,
-        sessionId: String? = null,
-        model: String? = null,
-        maxIterations: Int = 50,
-        toolsets: List<String>? = null
+        sessionId: String? = null
     ): Result<ChatResponse> {
         return try {
             val request = ChatRequest(
                 message = message,
                 sessionId = sessionId,
-                model = model,
-                maxIterations = maxIterations,
-                toolsets = toolsets
+                stream = false
             )
-            val response = apiService.createChatCompletion(request)
-            Result.success(response)
+            val response = apiService.sendChatMessage(request)
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("请求失败: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    /**
+     * 发送流式消息
+     */
     fun sendStreamMessage(
         message: String,
-        sessionId: String? = null,
-        model: String? = null,
-        maxIterations: Int = 50,
-        toolsets: List<String>? = null
+        sessionId: String? = null
     ): Flow<StreamResult> {
-        val request = ChatRequest(
-            message = message,
-            sessionId = sessionId,
-            model = model,
-            maxIterations = maxIterations,
-            toolsets = toolsets,
-            stream = true
-        )
-        return sseClient.streamChat(request).map { chunk ->
-            when (chunk.type) {
-                "text" -> StreamResult.Delta(content = chunk.content ?: "")
-                "tool_start" -> StreamResult.ToolStart(
-                    toolName = chunk.toolName ?: "",
-                    toolArgs = chunk.toolArgs
-                )
-                "tool_complete" -> StreamResult.ToolComplete(
-                    toolName = chunk.toolName ?: "",
-                    toolResult = chunk.toolResult
-                )
-                "done" -> StreamResult.Done(
-                    sessionId = chunk.sessionId,
-                    fullResponse = chunk.content ?: ""
-                )
-                "error" -> StreamResult.Error(
-                    message = chunk.error ?: "Unknown error"
-                )
-                else -> StreamResult.Delta(content = chunk.content ?: "")
-            }
-        }
+        return sseClient.connectStream(message, sessionId)
     }
 
-    suspend fun getSessions(
-        limit: Int = 20,
-        offset: Int = 0
-    ): Result<List<SessionInfo>> {
+    /**
+     * 获取会话列表
+     */
+    suspend fun getSessions(): Result<List<SessionInfo>> {
         return try {
-            val response = apiService.listSessions(limit, offset)
-            Result.success(response.sessions)
+            val response = apiService.getSessions()
+            if (response.isSuccessful) {
+                Result.success(response.body() ?: emptyList())
+            } else {
+                Result.failure(Exception("获取会话失败: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    /**
+     * 获取会话详情
+     */
     suspend fun getSession(sessionId: String): Result<SessionDetail> {
         return try {
             val response = apiService.getSession(sessionId)
-            Result.success(response)
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("获取会话详情失败: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun deleteSession(sessionId: String): Result<Boolean> {
+    /**
+     * 删除会话
+     */
+    suspend fun deleteSession(sessionId: String): Result<Unit> {
         return try {
-            apiService.deleteSession(sessionId)
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun healthCheck(): Result<HealthCheck> {
-        return try {
-            val response = apiService.healthCheck()
-            Result.success(response)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun getConfig(): Result<ConfigResponse> {
-        return try {
-            val response = apiService.getConfig()
-            Result.success(response)
+            val response = apiService.deleteSession(sessionId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("删除会话失败: ${response.code()}"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

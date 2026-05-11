@@ -19,8 +19,8 @@ object NetworkModule {
 
     // Android 模拟器使用 10.0.2.2 访问宿主机
     // 如果是真机测试，请改为宿主机的实际 IP 地址，例如：192.168.1.100
-    // 注意：FastAPI 服务运行在 8001 端口
-    private const val DEFAULT_BASE_URL = "http://10.0.2.2:8001/"
+    // FastAPI 服务运行在 8000 端口
+    private const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/"
 
     @Provides
     @Singleton
