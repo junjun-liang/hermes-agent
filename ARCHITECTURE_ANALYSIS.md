@@ -4,7 +4,7 @@
 
 Hermes Agent 是一个基于 LLM 的智能代理系统，支持 CLI 和多个消息平台（Telegram、Discord、Slack 等）。该系统实现了完整的多轮对话机制，包括工具调用、上下文管理、会话持久化等功能。
 
----
+***
 
 ## 一、软件架构设计图
 
@@ -157,21 +157,23 @@ Hermes Agent 是一个基于 LLM 的智能代理系统，支持 CLI 和多个消
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 二、核心组件详解
 
-### 1. AIAgent 类 (run_agent.py)
+### 1. AIAgent 类 (run\_agent.py)
 
 **职责**: 对话循环编排、工具调用管理、上下文压缩触发
 
 **核心方法**:
+
 - `run_conversation()`: 主对话循环
 - `chat()`: 简单聊天接口
 - `_build_system_prompt()`: 系统提示组装
 - `_execute_tool_call()`: 工具执行
 
 **关键特性**:
+
 - IterationBudget 管理 (默认 90 次迭代)
 - 上下文压缩自动触发
 - 工具调用并行化
@@ -182,6 +184,7 @@ Hermes Agent 是一个基于 LLM 的智能代理系统，支持 CLI 和多个消
 **职责**: 工具注册、调度、可用性检查
 
 **架构**:
+
 ```python
 class ToolRegistry:
     def register(name, schema, handler, check_fn, requires_env)
@@ -191,16 +194,18 @@ class ToolRegistry:
 ```
 
 **工具分类**:
-- **核心工具**: terminal, file_tools, web_tools
+
+- **核心工具**: terminal, file\_tools, web\_tools
 - **可选工具**: browser, vision, skills
 - **平台工具**: homeassistant, mcp
-- **Agent 级工具**: memory, todo, session_search
+- **Agent 级工具**: memory, todo, session\_search
 
-### 3. SessionDB (hermes_state.py)
+### 3. SessionDB (hermes\_state.py)
 
 **职责**: 会话持久化、消息历史存储、全文搜索
 
 **数据库结构**:
+
 ```sql
 sessions:
   - id, source, user_id, model
@@ -216,21 +221,23 @@ messages:
   - reasoning, reasoning_details
 ```
 
-### 4. Context Compressor (agent/context_compressor.py)
+### 4. Context Compressor (agent/context\_compressor.py)
 
 **职责**: 上下文窗口管理、对话摘要
 
 **压缩算法**:
+
 1. 保护头部 (系统提示 + 前 3 条消息)
 2. 保护尾部 (最近 20K tokens)
 3. 摘要中间部分
 4. 迭代更新摘要
 
-**触发条件**: 
+**触发条件**:
+
 - 达到模型上下文限制的 50%
 - 或超过配置的阈值
 
----
+***
 
 ## 三、多轮对话流程图
 
@@ -380,7 +387,7 @@ messages:
 └─────────────────┘
 ```
 
----
+***
 
 ## 四、工具调用详细流程
 
@@ -481,7 +488,7 @@ messages:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 五、会话管理流程
 
@@ -573,7 +580,7 @@ messages:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 六、Gateway 多平台架构
 
@@ -658,14 +665,16 @@ messages:
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 七、关键设计模式
 
 ### 1. **Registry Pattern** (工具注册)
+
 所有工具通过 `registry.register()` 自注册，集中管理 schema、handler 和可用性检查。
 
 ### 2. **Strategy Pattern** (上下文压缩引擎)
+
 ```python
 class ContextEngine:
     def should_compress() -> bool
@@ -674,16 +683,19 @@ class ContextEngine:
 ```
 
 实现类：
+
 - `ContextCompressor`: 默认压缩引擎
 - 可扩展其他策略
 
 ### 3. **Observer Pattern** (插件钩子)
+
 ```python
 invoke_hook("pre_tool_call", ...)
 invoke_hook("post_tool_call", ...)
 ```
 
 ### 4. **Factory Pattern** (环境后端)
+
 ```python
 def create_environment(env_type: str) -> Environment:
     - local: LocalEnvironment
@@ -693,12 +705,14 @@ def create_environment(env_type: str) -> Environment:
 ```
 
 ### 5. **Repository Pattern** (SessionDB)
+
 SQLite -backed repository for session persistence with:
+
 - Unit of Work (transaction management)
 - FTS5 search
 - Parent-child relationships
 
----
+***
 
 ## 八、数据流图
 
@@ -761,7 +775,7 @@ User Input
 └─────────────────┘
 ```
 
----
+***
 
 ## 九、配置系统
 
@@ -800,11 +814,12 @@ display:
   streaming: true
 ```
 
----
+***
 
 ## 十、安全与权限
 
 ### 1. **命令审批系统**
+
 ```python
 # tools/approval.py
 def is_destructive_command(cmd: str) -> bool:
@@ -812,48 +827,56 @@ def is_destructive_command(cmd: str) -> bool:
 ```
 
 ### 2. **PII 保护**
+
 - 用户 ID 哈希化
 - 聊天记录 ID 脱敏
-- 平台特定的 redact_pii 选项
+- 平台特定的 redact\_pii 选项
 
 ### 3. **环境隔离**
+
 - Docker 沙箱
 - 工作目录限制
 - 环境变量过滤
 
 ### 4. **配置文件扫描**
+
 - 检测 AGENTS.md/.cursorrules 中的提示注入
 - 阻止隐藏 div、不可见 unicode 字符
 
----
+***
 
 ## 十一、性能优化
 
 ### 1. **上下文压缩**
+
 - 工具结果预剪枝 (无需 LLM)
 - 头部/尾部保护
 - 迭代摘要更新
 
 ### 2. **并行工具执行**
+
 - ThreadPoolExecutor (8 workers)
 - 路径作用域工具并发
 - 只读工具并行安全
 
 ### 3. **Prompt Caching**
+
 - Anthropic cache control
 - 系统提示缓存
 - 技能索引缓存
 
 ### 4. **SQLite 优化**
+
 - WAL 模式并发
 - 应用层重试 + 随机抖动
 - 被动 WAL checkpoint
 
----
+***
 
 ## 十二、扩展机制
 
 ### 1. **技能系统**
+
 ```
 ~/.hermes/skills/
 ├── github/
@@ -864,6 +887,7 @@ def is_destructive_command(cmd: str) -> bool:
 ```
 
 ### 2. **插件系统**
+
 ```python
 # 钩子函数
 def pre_tool_call(...)
@@ -872,17 +896,19 @@ def on_agent_start(...)
 ```
 
 ### 3. **MCP 集成**
+
 - 外部 MCP 服务器
 - 动态工具发现
 - 标准协议适配
 
 ### 4. **环境后端**
+
 - 本地终端
 - Docker 容器
 - SSH 远程
 - Modal/Daytona 云
 
----
+***
 
 ## 十三、总结
 
